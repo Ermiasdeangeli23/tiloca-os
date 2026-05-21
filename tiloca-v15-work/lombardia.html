@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Potenziale fotovoltaico C&I sui capannoni industriali in Lombardia. Dati reali su oltre 110.000 aziende idonee, province prioritarie, e opportunità non ancora intercettate."/>
+  <title>Mercato FV Industriale — Lombardia | Tiloca Intelligence</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🛰️%3C/text%3E%3C/svg%3E"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F4F2EE;
+      --dark: #111111;
+      --accent: #1E3A5F;
+      --gold: #B8860B;
+      --gold-light: #D4A000;
+      --success: #2D7D46;
+      --secondary: #6E6A63;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--dark);
+      font-family: Inter, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .font-display { font-family: Sora, sans-serif; }
+    .font-mono { font-family: 'IBM Plex Mono', monospace; }
+
+    /* GRAIN */
+    .grain-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 9999; opacity: .03;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(244,242,238,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none;
+    }
+    .nav-logo-text {
+      font-family: Sora, sans-serif;
+      font-weight: 700; font-size: 1.1rem;
+      color: var(--dark); letter-spacing: -0.02em;
+    }
+    .nav-logo-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--secondary);
+      border: 1px solid rgba(0,0,0,0.12);
+      padding: 2px 6px; border-radius: 3px;
+    }
+
+    .nav-links { display: flex; align-items: center; gap: 2rem; }
+    .nav-link {
+      font-size: 0.875rem; color: var(--secondary);
+      text-decoration: none; transition: color 0.15s;
+      font-weight: 500;
+    }
+    .nav-link:hover { color: var(--dark); }
+    .nav-link.active { color: var(--accent); }
+
+    .nav-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent); color: white;
+      font-size: 0.875rem; font-weight: 600;
+      padding: 8px 20px; border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .nav-cta:hover { background: #163070; }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, var(--slate-900) 0%, var(--slate-800) 50%, var(--accent) 100%);
+      min-height: 70vh;
+      padding: 120px 2rem 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 70% 50%, rgba(184,134,11,0.12) 0%, transparent 60%);
+    }
+
+    .hero-inner {
+      max-width: 900px; margin: 0 auto;
+      position: relative; z-index: 1;
+    }
+
+    .hero-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--gold-light);
+      margin-bottom: 24px;
+    }
+    .hero-label::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold-light);
+    }
+
+    .hero-title {
+      font-family: Sora, sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      color: white;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    .hero-title span { color: var(--gold-light); }
+
+    .hero-sub {
+      font-size: 1.1rem; color: rgba(255,255,255,0.65);
+      line-height: 1.65; max-width: 600px;
+      margin-bottom: 48px;
+    }
+
+    /* STAT CARDS HERO */
+    .stat-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 20px 24px;
+      transition: background 0.2s;
+    }
+    .stat-card:hover { background: rgba(255,255,255,0.09); }
+
+    .stat-num {
+      font-family: Sora, sans-serif;
+      font-size: 2rem; font-weight: 800;
+      color: var(--gold-light);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: 0.78rem; color: rgba(255,255,255,0.5);
+      line-height: 1.4;
+    }
+
+    .stat-source {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; color: rgba(255,255,255,0.25);
+      margin-top: 8px; text-transform: uppercase; letter-spacing: 0.1em;
+    }
+
+    /* MAIN CONTENT */
+    .content {
+      max-width: 900px; margin: 0 auto;
+      padding: 80px 2rem;
+    }
+
+    .section { margin-bottom: 72px; }
+
+    .section-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: Sora, sans-serif;
+      font-size: 1.75rem; font-weight: 700;
+      color: var(--dark); letter-spacing: -0.02em;
+      line-height: 1.2; margin-bottom: 16px;
+    }
+
+    .section-body {
+      font-size: 1rem; color: var(--secondary);
+      line-height: 1.75; margin-bottom: 20px;
+    }
+
+    .section-body strong { color: var(--dark); font-weight: 600; }
+
+    /* PROVINCE GRID */
+    .province-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+      margin-top: 32px;
+    }
+
+    .province-card {
+      background: white;
+      border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 12px; padding: 20px 24px;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .province-card:hover {
+      box-shadow: 0 4px 16px rgba(30,58,95,0.08);
+      border-color: rgba(30,58,95,0.15);
+    }
+
+    .province-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .province-code {
+      font-family: Sora, sans-serif;
+      font-size: 1.4rem; font-weight: 800;
+      color: var(--accent); letter-spacing: -0.02em;
+    }
+
+    .province-name {
+      font-size: 0.8rem; color: var(--secondary);
+      margin-top: 1px;
+    }
+
+    .province-status {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 3px;
+    }
+    .status-priority { background: rgba(184,134,11,0.12); color: var(--gold); }
+    .status-active { background: rgba(45,125,70,0.1); color: var(--success); }
+    .status-growing { background: rgba(30,58,95,0.08); color: var(--accent); }
+
+    .province-bar-wrap {
+      background: rgba(0,0,0,0.06); border-radius: 2px; height: 4px;
+      margin-bottom: 10px;
+    }
+    .province-bar {
+      height: 4px; border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+      transition: width 1s ease;
+    }
+
+    .province-stats {
+      display: flex; justify-content: space-between;
+    }
+    .province-stat-item { text-align: center; }
+    .province-stat-num {
+      font-family: Sora, sans-serif;
+      font-size: 1.1rem; font-weight: 700;
+      color: var(--dark); letter-spacing: -0.02em;
+    }
+    .province-stat-label {
+      font-size: 0.7rem; color: var(--secondary); margin-top: 1px;
+    }
+
+    /* INSIGHTS GRID */
+    .insights-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+      margin-top: 32px;
+    }
+
+    .insight-card {
+      background: white;
+      border: 1px solid rgba(0,0,0,0.07);
+      border-left: 3px solid var(--gold);
+      border-radius: 12px; padding: 20px 24px;
+    }
+
+    .insight-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(184,134,11,0.1);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px; font-size: 14px;
+    }
+
+    .insight-title {
+      font-family: Sora, sans-serif;
+      font-size: 0.95rem; font-weight: 700;
+      color: var(--dark); margin-bottom: 6px;
+    }
+
+    .insight-body {
+      font-size: 0.85rem; color: var(--secondary); line-height: 1.6;
+    }
+
+    .insight-body strong { color: var(--dark); }
+
+    /* INCENTIVI */
+    .incentivi-list { margin-top: 32px; }
+
+    .incentivo-item {
+      background: white;
+      border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 12px; padding: 20px 24px;
+      margin-bottom: 12px;
+      display: flex; align-items: flex-start; gap: 16px;
+    }
+
+    .incentivo-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--gold); flex-shrink: 0; margin-top: 4px;
+    }
+    .incentivo-dot.green { background: var(--success); }
+
+    .incentivo-nome {
+      font-family: Sora, sans-serif;
+      font-size: 0.95rem; font-weight: 700;
+      color: var(--dark); margin-bottom: 4px;
+    }
+
+    .incentivo-desc {
+      font-size: 0.85rem; color: var(--secondary); line-height: 1.6;
+    }
+
+    .incentivo-badge {
+      margin-left: auto; flex-shrink: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 3px;
+    }
+    .badge-active { background: rgba(45,125,70,0.1); color: var(--success); }
+    .badge-bonifica { background: rgba(30,58,95,0.08); color: var(--accent); }
+
+    /* DARK SECTION */
+    .dark-section {
+      background: linear-gradient(135deg, var(--slate-900), var(--slate-800));
+      padding: 80px 2rem;
+      position: relative; overflow: hidden;
+    }
+    .dark-section::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 30% 50%, rgba(184,134,11,0.08) 0%, transparent 60%);
+    }
+    .dark-section-inner {
+      max-width: 900px; margin: 0 auto;
+      position: relative; z-index: 1;
+    }
+
+    .dark-section .section-title { color: white; }
+    .dark-section .section-body { color: rgba(255,255,255,0.55); }
+
+    /* CASE STUDY */
+    .case-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(184,134,11,0.25);
+      border-radius: 16px; padding: 28px 32px;
+      margin-top: 32px;
+    }
+
+    .case-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 24px; padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .case-zone {
+      font-family: Sora, sans-serif;
+      font-size: 1.1rem; font-weight: 700; color: white;
+      margin-bottom: 4px;
+    }
+
+    .case-type {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; color: var(--gold-light);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+
+    .case-tag {
+      background: rgba(184,134,11,0.15);
+      border: 1px solid rgba(184,134,11,0.3);
+      color: var(--gold-light);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 4px;
+    }
+
+    .case-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    }
+
+    .case-stat { text-align: center; }
+    .case-stat-num {
+      font-family: Sora, sans-serif;
+      font-size: 1.8rem; font-weight: 800;
+      color: var(--gold-light); letter-spacing: -0.03em; line-height: 1;
+    }
+    .case-stat-label {
+      font-size: 0.75rem; color: rgba(255,255,255,0.4);
+      margin-top: 4px; line-height: 1.3;
+    }
+
+    .case-footer {
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.8rem; color: rgba(255,255,255,0.35);
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+
+    .case-tag-small {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4);
+      font-size: 0.75rem; padding: 3px 8px; border-radius: 4px;
+    }
+
+    /* CTA SECTION */
+    .cta-section {
+      background: white;
+      border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 16px; padding: 48px;
+      text-align: center;
+      margin-top: 72px;
+    }
+
+    .cta-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 16px;
+    }
+
+    .cta-title {
+      font-family: Sora, sans-serif;
+      font-size: 1.6rem; font-weight: 800;
+      color: var(--dark); letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .cta-sub {
+      font-size: 0.95rem; color: var(--secondary);
+      line-height: 1.65; margin-bottom: 28px;
+    }
+
+    .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: white;
+      font-size: 0.9rem; font-weight: 600;
+      padding: 12px 28px; border-radius: 8px;
+      text-decoration: none; transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #163070; }
+
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--accent);
+      font-size: 0.9rem; font-weight: 600;
+      padding: 12px 28px; border-radius: 8px;
+      border: 1.5px solid rgba(30,58,95,0.25);
+      text-decoration: none; transition: all 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); background: rgba(30,58,95,0.04); }
+
+    /* FOOTER */
+    footer {
+      background: var(--slate-900);
+      padding: 40px 2rem;
+      margin-top: 0;
+    }
+    .footer-inner {
+      max-width: 900px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer-logo {
+      font-family: Sora, sans-serif; font-weight: 800;
+      font-size: 1rem; color: white; letter-spacing: -0.02em;
+    }
+    .footer-logo span {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: rgba(255,255,255,0.3); margin-left: 8px;
+    }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-link {
+      font-size: 0.8rem; color: rgba(255,255,255,0.35);
+      text-decoration: none;
+    }
+    .footer-link:hover { color: rgba(255,255,255,0.6); }
+    .footer-copy {
+      font-size: 0.75rem; color: rgba(255,255,255,0.2);
+      margin-top: 20px; text-align: center;
+      padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* SOURCE NOTE */
+    .source-note {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; color: rgba(255,255,255,0.2);
+      margin-top: 24px; line-height: 1.5;
+    }
+
+    /* DIVIDER */
+    .divider {
+      height: 1px; background: rgba(0,0,0,0.07);
+      margin: 0;
+    }
+
+    /* BREADCRUMB */
+    .breadcrumb {
+      background: rgba(30,58,95,0.04);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      padding: 10px 2rem;
+    }
+    .breadcrumb-inner {
+      max-width: 900px; margin: 0 auto;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.8rem; color: var(--secondary);
+    }
+    .breadcrumb a { color: var(--secondary); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--accent); }
+    .breadcrumb-sep { color: rgba(0,0,0,0.2); }
+
+    @media (max-width: 768px) {
+      .stat-row { grid-template-columns: 1fr; }
+      .province-grid { grid-template-columns: 1fr; }
+      .insights-grid { grid-template-columns: 1fr; }
+      .case-stats { grid-template-columns: repeat(2, 1fr); }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="grain-overlay"></div>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <span class="nav-logo-text">Tiloca</span>
+    <span class="nav-logo-badge">Intelligence</span>
+  </a>
+  <div class="nav-links">
+    <a href="/#servizi" class="nav-link">Servizi</a>
+    <a href="/#fotovoltaico" class="nav-link">Fotovoltaico</a>
+    <a href="/#bonifica" class="nav-link">Bonifica</a>
+    <a href="/lombardia.html" class="nav-link active">Mercati</a>
+    <a href="/mappa.html" class="nav-link">🛰️ Mappa Live</a>
+    <a href="/#contatti" class="nav-link">Contatti</a>
+    <a href="https://wa.me/41767967634" class="nav-cta">Richiedi Demo →</a>
+  </div>
+</nav>
+
+<div style="height: 64px;"></div>
+
+<div class="breadcrumb">
+  <div class="breadcrumb-inner">
+    <a href="/">Tiloca</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="#">Mercati</a>
+    <span class="breadcrumb-sep">/</span>
+    <span style="color: var(--accent); font-weight: 500;">Lombardia</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">Analisi di Mercato — Aggiornamento 2025</div>
+
+    <h1 class="hero-title font-display">
+      Fotovoltaico Industriale<br>
+      in <span>Lombardia</span>
+    </h1>
+
+    <p class="hero-sub">
+      La Lombardia è la prima regione italiana per capacità FV installata e la prima per consumi industriali.
+      Eppure la grande maggioranza dei capannoni manifatturieri non ha ancora un impianto.
+      Ecco i dati reali.
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-num">~5.000 MW</div>
+        <div class="stat-label">capacità fotovoltaica cumulata in Lombardia — prima regione italiana</div>
+        <div class="stat-source">Fonte: GSE / Terna 2024</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">>30 GW</div>
+        <div class="stat-label">potenziale nazionale non sfruttato su capannoni idonei (tetto &gt;2.000 mq)</div>
+        <div class="stat-source">Fonte: analisi satellite + CCIAA</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">51%</div>
+        <div class="stat-label">dei consumi elettrici lombardi proviene dal settore industriale — il più alto d'Italia</div>
+        <div class="stat-source">Fonte: Terna 2024</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN -->
+<main>
+  <div class="content">
+
+    <!-- PERCHÉ CONTA -->
+    <section class="section">
+      <div class="section-label">Contesto di Mercato</div>
+      <h2 class="section-title font-display">Perché la Lombardia è il mercato prioritario</h2>
+      <p class="section-body">
+        La Lombardia produce <strong>oltre 51 TWh di elettricità l'anno</strong> ma ne consuma circa 65 TWh — importando il resto da regioni e paesi confinanti. Questa dipendenza è strutturale e legata ai consumi industriali, che pesano per il 51% del totale regionale.
+      </p>
+      <p class="section-body">
+        Nel 2024 sono stati installati quasi <strong>1.000 MW di nuova capacità FV</strong> in Lombardia, portando il totale cumulato a sfiorare i 5 GW. Eppure, nonostante questa crescita, la penetrazione del FV C&I sui capannoni industriali rimane bassa: la maggior parte delle aziende manifatturiere lombarde non ha ancora un impianto.
+      </p>
+      <p class="section-body">
+        Le zone industriali di Brescia, Bergamo, Verona e Milano Est concentrano le più alte densità di capannoni &gt;2.000 mq con tetti liberi, aziende energivore attive e titolari raggiungibili. Sono i territori dove <strong>la conversione da lead a cantiere è più veloce</strong>.
+      </p>
+    </section>
+
+    <!-- PROVINCE -->
+    <section class="section">
+      <div class="section-label">Province Prioritarie</div>
+      <h2 class="section-title font-display">Dove lavorare adesso</h2>
+      <p class="section-body">
+        Non tutte le province hanno lo stesso potenziale. Brescia e Bergamo concentrano la maggior parte delle PMI manifatturiere energivore con coperture idonee. Verona e Vicenza completano il quadro del Nord Italia industriale.
+      </p>
+
+      <div class="province-grid">
+        <div class="province-card">
+          <div class="province-header">
+            <div>
+              <div class="province-code">BS — Brescia</div>
+              <div class="province-name">Distretto metalmeccanico, siderurgico, plastica</div>
+            </div>
+            <div class="province-status status-priority">Prioritaria</div>
+          </div>
+          <div class="province-bar-wrap">
+            <div class="province-bar" style="width: 35%"></div>
+          </div>
+          <div class="province-stats">
+            <div class="province-stat-item">
+              <div class="province-stat-num">~35%</div>
+              <div class="province-stat-label">capannoni già con FV</div>
+            </div>
+            <div class="province-stat-item">
+              <div class="province-stat-num">~65%</div>
+              <div class="province-stat-label">ancora da intercettare</div>
+            </div>
+            <div class="province-stat-item">
+              <div class="province-stat-num">Alta</div>
+              <div class="province-stat-label">densità industriale</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="province-card">
+          <div class="province-header">
+            <div>
+              <div class="province-code">BG — Bergamo</div>
+              <div class="province-name">Manifatturiero tessile, meccatronica, logistica</div>
+            </div>
+            <div class="province-status status-priority">Prioritaria</div>
+          </div>
+          <div class="province-bar-wrap">
+            <div class="province-bar" style="width: 28%"></div>
+          </div>
+          <div class="province-stats">
+            <div class="province-stat-item">
+              <div class="province-stat-num">~28%</div>
+              <div class="province-stat-label">capannoni già con FV</div>
+            </div>
+            <div class="province-stat-item">
+              <div class="province-stat-num">~72%</div>
+              <div class="province-stat-label">ancora da intercettare</div>
+            </div>
+            <div class="province-stat-item">
+              <div class="province-stat-num">Alta</div>
+              <div class="province-stat-label">densità industriale</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="province-card">
+          <div class="province-header">
+            <div>
+              <div class="province-code">VR — Verona</div>
+              <div class="province-name">Agroalimentare, marmo, distribuzione</div>
+            </div>
+            <div class="province-status status-growing">In crescita</div>
+          </div>
+          <div class="province-bar-wrap">
+            <div class="province-bar" style="width: 22%"></div>
+          </div>
+          <div class="province-stats">
+            <div class="province-stat-item">
+              <div class="province-stat-num">~22%</div>
+              <div class="province-stat-label">capannoni già con FV</div>
+            </div>
+            <div class="province-stat-item">
+              <div class="province-stat-num">~78%</div>
+              <div class="province-stat-label">ancora da intercettare</div>
+            </div>
+            <div class="province-stat-item">
+              <div class="province-stat-num">Media</div>
+              <div class="province-stat-label">densità industriale</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="province-card">
+          <div class="province-header">
+            <div>
+              <div class="province-code">MI-E — Milano Est</div>
+              <div class="province-name">Logistica, farmaceutico, elettronico</div>
+            </div>
+            <div class="province-status status-growing">In crescita</div>
+          </div>
+          <div class="province-bar-wrap">
+            <div class="province-bar" style="width: 30%"></div>
+          </div>
+          <div class="province-stats">
+            <div class="province-stat-item">
+              <div class="province-stat-num">~30%</div>
+              <div class="province-stat-label">capannoni già con FV</div>
+            </div>
+            <div class="province-stat-item">
+              <div class="province-stat-num">~70%</div>
+              <div class="province-stat-label">ancora da intercettare</div>
+            </div>
+            <div class="province-stat-item">
+              <div class="province-stat-num">Alta</div>
+              <div class="province-stat-label">densità industriale</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--secondary); margin-top: 16px; line-height: 1.5;">
+        * Stime basate su analisi satellitare Tiloca su zone industriali campione + dati GSE/Terna 2024-2025. I dati esatti per la tua zona sono disponibili su richiesta.
+      </p>
+    </section>
+
+    <!-- INSIGHTS -->
+    <section class="section">
+      <div class="section-label">Cosa Rivelano i Dati</div>
+      <h2 class="section-title font-display">I pattern che abbiamo trovato</h2>
+
+      <div class="insights-grid">
+        <div class="insight-card">
+          <div class="insight-icon">📐</div>
+          <div class="insight-title">La taglia ottimale è 2.000–8.000 mq</div>
+          <div class="insight-body">
+            I capannoni tra 2.000 e 8.000 mq offrono il miglior equilibrio tra superficie disponibile e semplicità dell'iter autorizzativo. Sono la fascia dove la conversione da lead a cantiere è più rapida — tipicamente <strong>30–90 giorni</strong> dal primo contatto.
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon">⚡</div>
+          <div class="insight-title">I settori più energivori rispondono prima</div>
+          <div class="insight-body">
+            Fonderie, stampaggio metalli, ceramica, alimentare con celle frigo: questi settori hanno bollette elettriche che pesano sul 20–35% dei costi operativi. Il ROI di un impianto FV è immediato e il titolare lo capisce subito — <strong>senza bisogno di educarlo</strong>.
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon">🏗️</div>
+          <div class="insight-title">Il tetto shed è il più diffuso e il più ignorato</div>
+          <div class="insight-body">
+            Le coperture a dente di sega (shed) dominano nei capannoni pre-anni '90 del Nord Italia. Sono identificabili via satellite con alta precisione e spesso contengono amianto — rendendoli candidati sia per FV che per <strong>bonifica a fondo perduto INAIL</strong>.
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon">📞</div>
+          <div class="insight-title">Il decisore è quasi sempre il titolare</div>
+          <div class="insight-body">
+            Nelle PMI lombarde con 20–200 dipendenti, la decisione sull'impianto FV passa quasi sempre dal CEO o dall'AD, non dall'ufficio tecnico. Bypassare i centralini e arrivare direttamente al titolare <strong>riduce il ciclo di vendita di 3–4 mesi</strong>.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INCENTIVI -->
+    <section class="section">
+      <div class="section-label">Perché Adesso</div>
+      <h2 class="section-title font-display">Incentivi attivi: il momento giusto per i tuoi clienti</h2>
+      <p class="section-body">
+        Gli asset industriali prioritari hanno accesso a incentivi concreti. Chi mappa prima il territorio costruisce una pipeline piu pulita; chi aspetta trova aree gia sature.
+      </p>
+
+      <div class="incentivi-list">
+        <div class="incentivo-item">
+          <div class="incentivo-dot"></div>
+          <div style="flex: 1;">
+            <div class="incentivo-nome">Transizione 5.0</div>
+            <div class="incentivo-desc">Credito d'imposta fino al 45% per impianti FV abbinati a riduzione dei consumi energetici. Budget totale: €13 miliardi per il biennio 2024–2025. Richiede progetto di efficienza energetica documentato.</div>
+          </div>
+          <div class="incentivo-badge badge-active">Attivo</div>
+        </div>
+
+        <div class="incentivo-item">
+          <div class="incentivo-dot"></div>
+          <div style="flex: 1;">
+            <div class="incentivo-nome">Conto Termico 3.0</div>
+            <div class="incentivo-desc">Incentivi per interventi di efficienza energetica su edifici industriali e produttivi. Erogazione diretta del GSE, accessibile anche alle PMI senza grandi strutture amministrative.</div>
+          </div>
+          <div class="incentivo-badge badge-active">Attivo</div>
+        </div>
+
+        <div class="incentivo-item">
+          <div class="incentivo-dot green"></div>
+          <div style="flex: 1;">
+            <div class="incentivo-nome">Bando ISI INAIL — Bonifica Amianto</div>
+            <div class="incentivo-desc">Finanziamento a fondo perduto fino al 65% per bonifica coperture in eternit e riqualificazione tetti industriali. Accessibile a tutte le aziende con dipendenti. Compatibile con installazione FV successiva.</div>
+          </div>
+          <div class="incentivo-badge badge-bonifica">Bonifica</div>
+        </div>
+      </div>
+    </section>
+
+
+  <!-- MAP SECTION -->
+  <section class="section" style="padding-bottom: 0">
+    <div class="section-label">Intelligence Satellitare · Live</div>
+    <h2 class="section-title font-display">Guarda cosa troviamo nella tua zona</h2>
+    <p class="section-body" style="max-width:600px;margin-bottom:2rem">
+      Questa è un'anteprima reale dello scanner Tiloca sulla provincia di Parma — 
+      20 capannoni analizzati via satellite in 15 minuti, €0,40 di costo totale. 
+      Clicca i pin per aprire la scheda dell asset.
+    </p>
+  </section>
+
+  <div style="margin: 0 0 80px; position: relative;">
+    <iframe
+      src="/mappa.html"
+      style="width:100%; height:600px; border:none; border-radius:12px; display:block; box-shadow:0 20px 60px rgba(0,0,0,0.15);"
+      title="Tiloca Scanner — Parma Live Demo"
+    ></iframe>
+    <div style="text-align:center; margin-top:20px;">
+      <a href="/mappa.html" target="_blank"
+        style="display:inline-flex;align-items:center;gap:8px;background:#1E3A5F;color:white;font-family:Sora,sans-serif;font-weight:600;font-size:0.9rem;padding:12px 28px;border-radius:8px;text-decoration:none;">
+        Apri mappa a schermo intero →
+      </a>
+      <p style="margin-top:12px;font-size:0.8rem;color:#6E6A63;font-family:'IBM Plex Mono',monospace;">
+        Scan: Parma · 1.238 edifici analizzati · 19 alta idoneità · €0,40 costo totale
+      </p>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+
+  <!-- DARK SECTION — Case Study -->
+  <div class="dark-section">
+    <div class="dark-section-inner">
+      <div class="section-label">Analisi Reale</div>
+      <h2 class="section-title font-display">Cosa abbiamo trovato sul campo</h2>
+      <p class="section-body">
+        Un esempio concreto di analisi condotta su una zona industriale bresciana. Dati reali, aziende anonimizzate.
+      </p>
+
+      <div class="case-card">
+        <div class="case-header">
+          <div>
+            <div class="case-zone">Zona Industriale — Brescia Sud</div>
+            <div class="case-type">Fotovoltaico C&I · Analisi Marzo 2026</div>
+          </div>
+          <div class="case-tag">Completato</div>
+        </div>
+
+        <div class="case-stats">
+          <div class="case-stat">
+            <div class="case-stat-num">47</div>
+            <div class="case-stat-label">capannoni analizzati via satellite</div>
+          </div>
+          <div class="case-stat">
+            <div class="case-stat-num">12</div>
+            <div class="case-stat-label">idonei (&gt;2.000 mq, tetto libero)</div>
+          </div>
+          <div class="case-stat">
+            <div class="case-stat-num">12</div>
+            <div class="case-stat-label">CEO/titolari con contatto verificato</div>
+          </div>
+          <div class="case-stat">
+            <div class="case-stat-num">5 gg</div>
+            <div class="case-stat-label">dalla richiesta alla consegna dossier</div>
+          </div>
+        </div>
+
+        <div class="case-footer">
+          <span class="case-tag-small">metalmeccanica</span>
+          <span class="case-tag-small">stampaggio</span>
+          <span class="case-tag-small">logistica</span>
+          <span class="case-tag-small">alimentare</span>
+          <span class="case-tag-small">plastica</span>
+          <span class="case-tag-small">200–2.400 kWp stimati per capannone</span>
+        </div>
+      </div>
+
+      <div class="source-note">
+        * I dati delle aziende identificate sono disponibili in formato dossier per gli installatori che operano nella zona. Contattaci per ricevere un esempio reale sulla tua area di interesse.
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA FINALE -->
+  <div class="content">
+    <div class="cta-section">
+      <div class="cta-label">Vuoi lavorare su Brescia o Bergamo?</div>
+      <h2 class="cta-title font-display">Verifica la copertura operativa nella tua zona</h2>
+      <p class="cta-sub">
+        Ti mandiamo un dossier di esempio reale sulla zona che ti interessa.<br>
+        Nessun impegno. Vedi la qualità dei dati prima di decidere.
+      </p>
+      <div class="cta-buttons">
+        <a href="https://wa.me/41767967634?text=Ciao%20Ermias,%20ho%20visto%20la%20pagina%20Lombardia%20e%20vorrei%20un%20dossier%20di%20esempio%20per%20la%20zona%20di..." class="btn-primary">
+          WhatsApp — Risposta in 2 ore →
+        </a>
+        <a href="mailto:ermi@tiloca.com?subject=Richiesta%20dossier%20Lombardia" class="btn-secondary">
+          ermi@tiloca.com
+        </a>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">Tiloca <span>Intelligence</span></div>
+    </div>
+    <div class="footer-links">
+      <a href="/" class="footer-link">Home</a>
+      <a href="/#fotovoltaico" class="footer-link">Fotovoltaico</a>
+      <a href="/#bonifica" class="footer-link">Bonifica</a>
+      <a href="/#contatti" class="footer-link">Contatti</a>
+    </div>
+  </div>
+  <div class="footer-copy">© 2026 Tiloca Intelligence — Lugano, Svizzera · tiloca.com</div>
+</footer>
+
+</body>
+</html>
+<script>
+document.querySelectorAll('a[href^="/#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').replace('/#', '');
+    if (window.location.pathname !== '/') {
+      window.location.href = '/' + a.getAttribute('href');
+    }
+  });
+});
+</script>

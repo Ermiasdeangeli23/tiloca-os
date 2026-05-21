@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tiloca — Intelligence Satellitare · Parma</title>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/2.15.0/mapbox-gl.js'></script>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/2.15.0/mapbox-gl.css' rel='stylesheet' />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#080f1a;font-family:'DM Sans',sans-serif;color:#c8d8e8}
+:root{--g:#00d4a0;--navy:#080f1a;--border:rgba(0,212,160,0.18);--text2:#7a90a4;--amber:#f5a623}
+
+header{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(8,15,26,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:200}
+.logo{display:flex;align-items:center;gap:10px}
+.lbadge{width:28px;height:28px;background:var(--g);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#080f1a}
+.lname{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#fff;letter-spacing:2px}
+.ltag{font-size:9px;color:var(--g);letter-spacing:2px;text-transform:uppercase}
+.hpill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:rgba(0,212,160,0.06);border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--g)}
+.hdot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.hstats{display:flex;gap:24px}
+.hs{text-align:right}
+.hs-n{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:var(--g);line-height:1}
+.hs-l{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+.sidebar{position:fixed;top:52px;left:0;bottom:0;width:292px;background:rgba(8,15,26,0.97);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform 0.25s ease}
+.sidebar.collapsed{transform:translateX(-292px)}
+@media(max-width:768px){
+  .sidebar{width:100%;bottom:auto;max-height:45vh;overflow:hidden;border-right:none;border-bottom:1px solid var(--border)}
+  .sidebar.mobile-hidden{transform:translateY(-100%);top:-100vh}
+  #map{left:0!important;top:calc(52px + 45vh)!important}
+  .abar{left:0!important}
+  .dp{right:4px!important;left:4px!important;width:auto!important;top:auto!important;bottom:50px!important}
+  header{padding:0 12px;height:48px}
+  .hstats{gap:12px}
+  .hs-n{font-size:12px}
+  .hs-l{font-size:7px}
+  .lname{font-size:11px}
+  .ltag{font-size:7px}
+  .lead-list{max-height:calc(45vh - 110px)}
+  .sb-foot{display:none}
+}
+.sb-head{padding:14px 16px 12px;border-bottom:1px solid rgba(0,212,160,0.08)}
+.sb-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.filters{display:flex;gap:5px;margin-bottom:10px}
+.fb{padding:4px 11px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,0.08);background:transparent;color:var(--text2);transition:all 0.14s;font-family:'DM Sans',sans-serif}
+.fb.on{background:var(--g);color:#080f1a;border-color:var(--g);font-weight:600}
+.fb:hover:not(.on){border-color:var(--g);color:var(--g)}
+.sb-search{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(0,212,160,0.1);border-radius:6px;padding:7px 10px;font-size:12px;color:#c8d8e8;font-family:'DM Sans',sans-serif;outline:none}
+.sb-search:focus{border-color:var(--border)}
+.sb-search::placeholder{color:var(--text2)}
+
+.lead-list{flex:1;overflow-y:auto;padding:6px}
+.lead-list::-webkit-scrollbar{width:2px}
+.lead-list::-webkit-scrollbar-thumb{background:var(--border)}
+
+.li{padding:10px 12px;border-radius:7px;cursor:pointer;margin-bottom:3px;border:1px solid transparent;transition:all 0.12s;background:rgba(255,255,255,0.02)}
+.li:hover{background:rgba(0,212,160,0.06);border-color:rgba(0,212,160,0.15)}
+.li.sel{background:rgba(0,212,160,0.1);border-color:var(--g)}
+.li-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px}
+.li-name{font-size:12px;font-weight:500;color:#dce8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.ba{background:rgba(0,212,160,0.12);color:var(--g);font-size:8px;padding:2px 6px;border-radius:3px;font-weight:700;flex-shrink:0}
+.bm{background:rgba(245,166,35,0.12);color:var(--amber);font-size:8px;padding:2px 6px;border-radius:3px;font-weight:700;flex-shrink:0}
+.li-meta{display:flex;gap:8px}
+.li-kwp{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--g)}
+.li-area,.li-tetto{font-size:10px;color:var(--text2)}
+
+.sb-foot{padding:10px 16px;border-top:1px solid rgba(0,212,160,0.08);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2)}
+.sb-foot span{color:var(--g);font-weight:600}
+
+#map{position:fixed;top:52px;left:292px;right:0;bottom:44px}
+@media(max-width:768px){#map{left:0;top:calc(48px + 45vh);bottom:44px}}
+
+.abar{position:fixed;bottom:0;left:292px;right:0;height:44px;background:rgba(8,15,26,0.95);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;z-index:100}
+.ab{text-align:center}
+.ab-n{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--g)}
+.ab-l{font-size:8px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.ab-div{width:1px;height:24px;background:rgba(0,212,160,0.12)}
+.ab-scan{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text2);letter-spacing:1px}
+.ab-scan span{color:var(--g)}
+
+/* Detail panel */
+.dp{position:fixed;right:16px;top:68px;width:306px;background:rgba(6,12,22,0.98);border:1px solid var(--border);border-radius:12px;z-index:150;display:none;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+.dp.show{display:block;animation:pin 0.18s cubic-bezier(0.34,1.4,0.64,1)}
+@keyframes pin{from{opacity:0;transform:scale(0.94) translateY(-6px)}to{opacity:1;transform:none}}
+.dp-top{height:140px;background:linear-gradient(135deg,#040a14,#0a1828);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+.dp-grid{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(0,212,160,0.04) 28px,rgba(0,212,160,0.04) 29px),repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(0,212,160,0.04) 28px,rgba(0,212,160,0.04) 29px)}
+.dp-ico{font-size:28px;opacity:0.2;position:relative;z-index:1}
+.dp-sat{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--g);letter-spacing:3px;text-transform:uppercase;opacity:0.5;position:relative;z-index:1}
+.dp-sentinel{position:absolute;bottom:7px;left:8px;background:rgba(4,10,20,0.9);border:1px solid var(--border);border-radius:3px;padding:2px 7px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--g);letter-spacing:1px}
+.dp-score{position:absolute;top:8px;right:8px;background:var(--g);color:#080f1a;border-radius:5px;padding:3px 9px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;box-shadow:0 0 16px rgba(0,212,160,0.4)}
+.dp-x{position:absolute;top:7px;left:7px;width:22px;height:22px;border-radius:50%;background:rgba(4,10,20,0.8);border:1px solid rgba(255,255,255,0.1);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;z-index:5}
+.dp-x:hover{color:#fff}
+.dp-body{padding:14px}
+.dp-name{font-size:14px;font-weight:600;color:#fff;margin-bottom:2px}
+.dp-addr{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text2);margin-bottom:12px;letter-spacing:0.5px}
+.dp-g{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.dp-s{background:rgba(255,255,255,0.04);border-radius:5px;padding:7px 9px;border:1px solid rgba(0,212,160,0.08)}
+.dp-sl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.dp-sv{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--g)}
+.dp-note{font-size:11px;color:var(--text2);line-height:1.6;border-top:1px solid rgba(0,212,160,0.08);padding-top:9px;font-style:italic}
+.dp-acts{display:flex;gap:6px;margin-top:11px}
+.dp-btn{flex:1;padding:7px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--g);font-family:'DM Sans',sans-serif;font-weight:500;transition:all 0.14s}
+.dp-btn:hover{background:rgba(0,212,160,0.08)}
+.dp-btn.p{background:var(--g);color:#080f1a;border-color:var(--g)}
+.dp-btn.p:hover{background:#00b888}
+
+.mapboxgl-ctrl-bottom-right,.mapboxgl-ctrl-bottom-left,.mapboxgl-ctrl-attrib{display:none!important}
+.mapboxgl-ctrl-top-right{top:8px;right:8px}
+.mapboxgl-ctrl-group{background:rgba(8,15,26,0.92)!important;border:1px solid var(--border)!important}
+.mapboxgl-ctrl-group button{background:transparent!important}
+.mapboxgl-ctrl-icon{filter:invert(0.7) sepia(1) hue-rotate(120deg)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo" style="gap:8px">
+    <div class="lbadge">T</div>
+    <div><div class="lname">TILOCA</div><div class="ltag">Satellite Intelligence</div></div>
+    <button onclick="toggleSidebar()" id="sidebarToggle" style="display:none;background:rgba(0,212,160,0.1);border:1px solid var(--border);border-radius:6px;color:var(--g);font-size:10px;padding:4px 8px;cursor:pointer;font-family:'IBM Plex Mono',monospace;margin-left:4px">☰ Lead</button>
+  </div>
+  <div style="display:flex;gap:8px">
+    <div class="hpill"><div class="hdot"></div>Scanner attivo</div>
+    <div class="hpill" style="color:var(--text2);border-color:rgba(255,255,255,0.06)">🛰️ Sentinel-2 · Apr 2026</div>
+    <a href="/lombardia.html" style="display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);font-family:'IBM Plex Mono',monospace;font-size:10px;color:#c8d8e8;text-decoration:none;">← Torna al sito</a>
+  </div>
+  <div class="hstats">
+    <div class="hs"><div class="hs-n">1.238</div><div class="hs-l">Edifici trovati</div></div>
+    <div class="hs"><div class="hs-n">19</div><div class="hs-l">Alta idoneità</div></div>
+    <div class="hs"><div class="hs-n">€0,40</div><div class="hs-l">Costo scan</div></div>
+    <div class="hs"><div class="hs-n">15'</div><div class="hs-l">Tempo totale</div></div>
+  </div>
+</header>
+
+<div class="sidebar">
+  <div class="sb-head">
+    <div class="sb-lbl">Lead identificati — Parma</div>
+    <div class="filters">
+      <button class="fb on" onclick="flt('tutti',this)">Tutti (20)</button>
+      <button class="fb" onclick="flt('alta',this)">Alta (19)</button>
+      <button class="fb" onclick="flt('media',this)">Media (1)</button>
+    </div>
+    <input class="sb-search" type="text" placeholder="Cerca azienda..." oninput="srch(this.value)">
+  </div>
+  <div class="lead-list" id="ll"></div>
+  <div class="sb-foot">Potenziale totale: <span id="totKwp">—</span> kWp</div>
+</div>
+
+<div id="map"></div>
+
+<div class="dp" id="dp">
+  <div class="dp-top">
+    <div class="dp-grid"></div>
+    <div class="dp-ico">🛰️</div>
+    <div class="dp-sat">Analisi Satellite</div>
+    <div class="dp-sentinel">Sentinel-2 · Aprile 2026</div>
+    <div class="dp-score" id="dpSc">9.2</div>
+    <div class="dp-x" onclick="closeDP()">✕</div>
+  </div>
+  <div class="dp-body">
+    <div class="dp-name" id="dpNm">—</div>
+    <div class="dp-addr" id="dpAd">—</div>
+    <div class="dp-g">
+      <div class="dp-s"><div class="dp-sl">Superficie</div><div class="dp-sv" id="dpAr">—</div></div>
+      <div class="dp-s"><div class="dp-sl">kWp stimati</div><div class="dp-sv" id="dpKw">—</div></div>
+      <div class="dp-s"><div class="dp-sl">Tipo tetto</div><div class="dp-sv" id="dpTt">—</div></div>
+      <div class="dp-s"><div class="dp-sl">FV presente</div><div class="dp-sv" id="dpFv" style="color:var(--g)">—</div></div>
+    </div>
+    <div class="dp-note" id="dpNo">—</div>
+    <div class="dp-acts">
+      <button class="dp-btn" onclick="gm()">📍 Google Maps</button>
+      <button class="dp-btn p">Richiedi dossier</button>
+    </div>
+  </div>
+</div>
+
+<div class="abar">
+  <div class="ab"><div class="ab-n" id="abS">20</div><div class="ab-l">Lead visibili</div></div>
+  <div class="ab-div"></div>
+  <div class="ab"><div class="ab-n" id="abK">—</div><div class="ab-l">kWp totali</div></div>
+  <div class="ab-div"></div>
+  <div class="ab"><div class="ab-n">€0,40</div><div class="ab-l">Costo scan</div></div>
+  <div class="ab-div"></div>
+  <div class="ab"><div class="ab-n">Parma (PR)</div><div class="ab-l">Provincia</div></div>
+  <div class="ab-div"></div>
+  <div class="ab-scan">TILOCA SCANNER v2.0 · <span>30.04.2026 12:11</span></div>
+</div>
+
+<script>
+var LEADS = [
+  {n:"Barilla",a:"Parma",lat:44.827237,lon:10.371698,mq:79697,kwp:11954,ido:"alta",tt:"piano",note:"Ampia superficie disponibile e libera. Leader alimentare — consumi energetici elevatissimi."},
+  {n:"H. ESSER",a:"Fidenza (PR)",lat:44.895525,lon:10.095095,mq:64993,kwp:9748,ido:"alta",tt:"piano",note:"Edificio grande, libero da ostacoli. Alto consumo industriale."},
+  {n:"Edificio #182154219",a:"Parma Sud",lat:44.849279,lon:10.352925,mq:49252,kwp:7387,ido:"alta",tt:"piano",note:"Tetto libero e area molto ampia."},
+  {n:"Edificio #168376874",a:"Parma Est",lat:44.801529,lon:10.452115,mq:47281,kwp:6028,ido:"alta",tt:"shed",note:"Grande edificio con tetto shed liberato."},
+  {n:"Edificio #183506480",a:"Parma Nord",lat:44.991554,lon:9.925223,mq:40972,kwp:6145,ido:"alta",tt:"piano",note:"Ampio tetto industriale in buone condizioni."},
+  {n:"Deposito Red Store Mutti",a:"Parma",lat:44.698804,lon:10.375601,mq:40863,kwp:5210,ido:"alta",tt:"shed",note:"Tetto shed ampio in zona rurale. Gruppo Mutti."},
+  {n:"Speroni SpA — Water Pumps",a:"Castelnovo di Sotto (RE)",lat:44.798835,lon:10.573041,mq:39447,kwp:5029,ido:"alta",tt:"shed",note:"Manifattura industriale. Alto consumo energetico per processo produttivo."},
+  {n:"Trivium Packaging srl",a:"Parma",lat:44.705852,lon:10.459209,mq:30856,kwp:3934,ido:"alta",tt:"shed",note:"Capannone packaging. Tetto libero in ottimo stato."},
+  {n:"Edificio #488937718",a:"Fidenza (PR)",lat:44.865392,lon:10.075947,mq:30746,kwp:3920,ido:"alta",tt:"shed",note:"Edificio industriale, tetto libero e ampio."},
+  {n:"Edificio #179706058",a:"Parma Ovest",lat:44.696132,lon:10.22344,mq:28233,kwp:3599,ido:"alta",tt:"shed",note:"Tetto ampio e libero."},
+  {n:"Edificio #179285833",a:"Parma SW",lat:44.768866,lon:10.213807,mq:28177,kwp:3592,ido:"alta",tt:"shed",note:"Grande edificio con tetto shed in buone condizioni."},
+  {n:"Edificio #182153288",a:"Parma",lat:44.8494,lon:10.363366,mq:27372,kwp:3489,ido:"alta",tt:"shed",note:"Ampia superficie libera e di buona qualità."},
+  {n:"Edificio #353244503",a:"Parma Nord",lat:44.994703,lon:10.486178,mq:26857,kwp:4028,ido:"alta",tt:"piano",note:"Tetto piano spazioso. Zero ostacoli visibili."},
+  {n:"Edificio #102684555",a:"Parma",lat:44.971363,lon:10.429537,mq:26807,kwp:4021,ido:"alta",tt:"piano",note:"Edificio industriale, tetto ampio e libero."},
+  {n:"Edificio #179624289",a:"Parma Ovest",lat:44.721616,lon:10.294945,mq:26670,kwp:3400,ido:"media",tt:"shed",note:"Tetto ampio ma con segni di usura. Richiede valutazione strutturale."},
+  {n:"Cantine Riunite & CIV",a:"Campegine (RE)",lat:44.773035,lon:10.512214,mq:26273,kwp:3940,ido:"alta",tt:"piano",note:"Cooperativa vitivinicola. Alto consumo per produzione."},
+  {n:"Edificio #183612164",a:"Parma Ovest",lat:44.819979,lon:9.834907,mq:26201,kwp:3930,ido:"alta",tt:"piano",note:"Tetto piano ampio e libero."},
+  {n:"Crown Imballaggi Italia SRL",a:"Parma",lat:44.745398,lon:10.491916,mq:24665,kwp:3144,ido:"alta",tt:"shed",note:"Produzione imballaggi. Tetto shed ampio."},
+  {n:"Fagioli Spa",a:"Parma",lat:44.766267,lon:10.440927,mq:24371,kwp:3107,ido:"alta",tt:"shed",note:"Edificio industriale con tetto grande e libero."},
+  {n:"Edificio #168920239",a:"Parma Est",lat:44.817509,lon:10.558063,mq:24314,kwp:3100,ido:"alta",tt:"shed",note:"Edificio molto ampio, tetto visibile e libero."}
+];
+
+var NAMED = ["Barilla","H. ESSER","Deposito Red Store Mutti","Speroni SpA — Water Pumps","Trivium Packaging srl","Cantine Riunite & CIV","Crown Imballaggi Italia SRL","Fagioli Spa"];
+function isNamed(n){return NAMED.indexOf(n)>=0}
+function sc(l){var s=7;if(l.ido==='alta')s+=1;if(l.kwp>5000)s+=0.6;if(isNamed(l.n))s+=0.3;return Math.min(s,9.9).toFixed(1)}
+
+mapboxgl.accessToken='pk.eyJ1IjoiZXJtaWFzZGVhbmdlbGkiLCJhIjoiY21vbG1waGc4MG03NzJyc2FnZjJtYTJ0dCJ9.vCLXrGcns36w-X9sAzSpJw';
+
+var map=new mapboxgl.Map({
+  container:'map',
+  style:'mapbox://styles/mapbox/satellite-streets-v12',
+  center:[10.33,44.82],
+  zoom:9,
+  pitch:0,
+  bearing:-5
+});
+
+map.addControl(new mapboxgl.NavigationControl(),'top-right');
+
+var markers=[];
+var selIdx=null;
+var curFlt='tutti';
+var curSrch='';
+var actLL=null;
+
+function mkMarker(l,i){
+  var el=document.createElement('div');
+  var named=isNamed(l.n);
+  var alta=l.ido==='alta';
+  var c=alta?'#00d4a0':'#f5a623';
+  var sz=named?20:13;
+  var glow=named?'0 0 14px 3px '+c+'88':'0 0 7px 1px '+c+'66';
+  el.style.cssText='width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+c+';border:'+(named?2.5:1.5)+'px solid white;cursor:pointer;box-shadow:'+glow+';transition:transform 0.15s;opacity:'+(named?0.95:0.82);
+  el.addEventListener('mouseenter',function(){el.style.transform='scale(1.35)'});
+  el.addEventListener('mouseleave',function(){el.style.transform='scale(1)'});
+  el.addEventListener('click',function(e){e.stopPropagation();selLead(i)});
+  el.style.pointerEvents='auto';
+  var mk=new mapboxgl.Marker({element:el,anchor:'center',offset:[0,0]}).setLngLat([l.lon,l.lat]).addTo(map);
+  markers.push(mk);
+}
+
+map.on('load',function(){
+  for(var i=0;i<LEADS.length;i++) mkMarker(LEADS[i],i);
+  renderList();
+});
+
+function selLead(i){
+  var l=LEADS[i];selIdx=i;actLL=[l.lat,l.lon];
+  map.flyTo({center:[l.lon,l.lat],zoom:15,pitch:55,bearing:(Math.random()*20)-10,duration:1400,essential:true});
+  document.getElementById('dpNm').textContent=l.n;
+  document.getElementById('dpAd').textContent=l.a+' · '+l.mq.toLocaleString('it')+' mq';
+  document.getElementById('dpAr').textContent=l.mq.toLocaleString('it')+' mq';
+  document.getElementById('dpKw').textContent='~'+l.kwp.toLocaleString('it')+' kWp';
+  document.getElementById('dpTt').textContent=l.tt;
+  document.getElementById('dpFv').textContent='ASSENTE ✓';
+  document.getElementById('dpFv').style.color='#00d4a0';
+  document.getElementById('dpNo').textContent=l.note;
+  document.getElementById('dpSc').textContent=sc(l);
+  // Load Mapbox static satellite image
+  var satImg = document.getElementById('dpSatImg');
+  if(satImg) {
+    var imgUrl = 'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/'
+      + l.lon + ',' + l.lat + ',16,0/400x160@2x?access_token=pk.eyJ1IjoiZXJtaWFzZGVhbmdlbGkiLCJhIjoiY21vbG1waGc4MG03NzJyc2FnZjJtYTJ0dCJ9.vCLXrGcns36w-X9sAzSpJw';
+    satImg.src = imgUrl;
+  }
+  document.getElementById('dp').classList.add('show');
+  document.querySelectorAll('.li').forEach(function(it){
+    it.classList.toggle('sel',+it.dataset.i===i);
+    if(+it.dataset.i===i) it.scrollIntoView({block:'nearest'});
+  });
+}
+
+function closeDP(){
+  document.getElementById('dp').classList.remove('show');
+  selIdx=null;
+  map.flyTo({center:[10.33,44.82],zoom:9,pitch:0,bearing:-5,duration:1000});
+}
+
+function gm(){if(actLL)window.open('https://www.google.com/maps?q='+actLL[0]+','+actLL[1]+'&t=k','_blank')}
+
+function renderList(){
+  var ll=document.getElementById('ll');ll.innerHTML='';
+  var shown=0,tot=0;
+  for(var i=0;i<LEADS.length;i++){
+    var l=LEADS[i];
+    if(curFlt!=='tutti'&&l.ido!==curFlt) continue;
+    if(curSrch&&l.n.toLowerCase().indexOf(curSrch.toLowerCase())<0&&l.a.toLowerCase().indexOf(curSrch.toLowerCase())<0) continue;
+    shown++;tot+=l.kwp;
+    var d=document.createElement('div');
+    d.className='li'+(selIdx===i?' sel':'');
+    d.dataset.i=i;
+    var badge=l.ido==='alta'?'<span class="ba">ALTA</span>':'<span class="bm">MEDIA</span>';
+    d.innerHTML='<div class="li-top"><div class="li-name">'+l.n+'</div>'+badge+'</div>'
+      +'<div class="li-meta"><span class="li-kwp">~'+l.kwp.toLocaleString('it')+' kWp</span>'
+      +'<span class="li-area">'+Math.round(l.mq/1000)+'k mq</span>'
+      +'<span class="li-tetto">'+l.tt+'</span></div>';
+    d.onclick=(function(idx){return function(){selLead(idx)}})(i);
+    ll.appendChild(d);
+    markers[i].getElement().style.display='';
+  }
+  for(var j=0;j<LEADS.length;j++){
+    var pass=(curFlt==='tutti'||LEADS[j].ido===curFlt)&&(!curSrch||LEADS[j].n.toLowerCase().indexOf(curSrch.toLowerCase())>=0||LEADS[j].a.toLowerCase().indexOf(curSrch.toLowerCase())>=0);
+    markers[j].getElement().style.display=pass?'':'none';
+  }
+  var tk=tot.toLocaleString('it');
+  document.getElementById('totKwp').textContent=tk;
+  document.getElementById('abS').textContent=shown;
+  document.getElementById('abK').textContent=tk;
+}
+
+function flt(f,btn){
+  curFlt=f;
+  document.querySelectorAll('.fb').forEach(function(b){b.classList.remove('on')});
+  btn.classList.add('on');
+  renderList();
+}
+
+function srch(v){curSrch=v;renderList()}
+
+map.on('click',function(){if(selIdx!==null)closeDP()});
+
+// Mobile setup
+function isMobile(){return window.innerWidth<=768}
+function toggleSidebar(){
+  var sb=document.querySelector('.sidebar');
+  sb.classList.toggle('mobile-hidden');
+}
+function setupMobile(){
+  var btn=document.getElementById('sidebarToggle');
+  if(isMobile()){
+    btn.style.display='block';
+    // Start map zoomed into Parma on mobile
+    map.setZoom(8);
+  } else {
+    btn.style.display='none';
+    document.querySelector('.sidebar').classList.remove('mobile-hidden');
+  }
+}
+setupMobile();
+window.addEventListener('resize', setupMobile);
+</script>
+</body>
+</html>

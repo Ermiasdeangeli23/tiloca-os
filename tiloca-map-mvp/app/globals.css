@@ -1,0 +1,74 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Sora";
+  --font-sans: "Inter";
+  --font-mono: "IBM Plex Mono";
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: #080f1a;
+  color: rgba(255, 255, 255, 0.86);
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.mapboxgl-ctrl-group {
+  background: rgba(8, 15, 26, 0.9) !important;
+  border: 1px solid rgba(0, 212, 160, 0.14) !important;
+  box-shadow: none !important;
+}
+
+.mapboxgl-ctrl-group button {
+  background: transparent !important;
+}
+
+.mapboxgl-ctrl-icon {
+  filter: invert(0.8) sepia(0.3) hue-rotate(110deg);
+}
+
+.console-panel {
+  background: rgba(8, 15, 26, 0.94);
+  border-color: rgba(0, 212, 160, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.field-shell {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.field-shell:focus-within {
+  border-color: rgba(0, 212, 160, 0.38);
+}
+
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 212, 160, 0.28) transparent;
+}
+
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 160, 0.28);
+  border-radius: 999px;
+}
