@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { DeliveryList } from "@/components/DeliveryList";
@@ -31,7 +30,7 @@ export function DeliveryHome() {
       );
       setDeliveries(enriched);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load deliveries");
+      setError(loadError instanceof Error ? loadError.message : "Impossibile caricare le delivery");
     } finally {
       setLoading(false);
     }
@@ -54,19 +53,19 @@ export function DeliveryHome() {
       await createDelivery({
         ...payload,
         status: "draft",
-        notes: payload.notes || "Created from Tiloca delivery home.",
+        notes: payload.notes || "Creata dalla home delivery Tiloca.",
       });
       setModalOpen(false);
       await loadDeliveries();
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Unable to create delivery");
+      setError(createError instanceof Error ? createError.message : "Impossibile creare la delivery");
     } finally {
       setCreating(false);
     }
   };
 
   return (
-    <main className="h-screen overflow-hidden bg-[#080f1a]">
+    <main className="h-screen overflow-hidden bg-[#080f1a] pt-14">
       <div className="mx-auto flex h-full max-w-6xl flex-col px-6 py-6">
         <header className="flex items-center justify-between border-b border-white/10 pb-5">
           <div>
@@ -74,7 +73,7 @@ export function DeliveryHome() {
               Tiloca · Territorial Console
             </h1>
             <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-tiloca-green/75">
-              Delivery workspace index
+              Indice spazio lavoro delivery
             </div>
           </div>
           <button
@@ -93,23 +92,17 @@ export function DeliveryHome() {
           ) : null}
           {loading ? (
             <div className="field-shell p-8 font-mono text-xs uppercase tracking-[0.16em] text-white/40">
-              Loading deliveries...
+              Caricamento delivery...
             </div>
           ) : (
             <DeliveryList deliveries={deliveries} />
           )}
         </section>
 
-        <footer className="flex items-center justify-between border-t border-white/10 pt-4">
+        <footer className="border-t border-white/10 pt-4">
           <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/30">
-            Assets are scoped by delivery links. Global operations live separately.
+            Gli asset sono collegati alle delivery. Le operazioni globali restano in area legacy.
           </div>
-          <Link
-            href="/operations"
-            className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/50 transition hover:text-tiloca-green"
-          >
-            Operations →
-          </Link>
         </footer>
       </div>
 

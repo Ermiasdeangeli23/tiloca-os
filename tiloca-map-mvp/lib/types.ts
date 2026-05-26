@@ -241,3 +241,34 @@ export type DeliveryRunResponse = {
   new_asset_count: number;
   associated_asset_count: number;
 };
+
+export type TerritoryOverview = {
+  territory: {
+    id: number;
+    slug: string;
+    name: string;
+  };
+  totals: {
+    buildings_identified: number;
+    with_idoneous_roof: number;
+    high_suitability: number;
+    without_existing_pv: number;
+    above_2000mq: number;
+    total_installable_kwp: number;
+  };
+  kwp_distribution: Array<{
+    range: string;
+    count: number;
+  }>;
+  by_ateco: Array<{
+    category: string;
+    count: number;
+  }>;
+  by_suitability: {
+    alta: number;
+    media: number;
+    bassa: number;
+    non_analizzato: number;
+  };
+  last_scan_date: string | null;
+};

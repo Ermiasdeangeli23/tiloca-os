@@ -52,10 +52,20 @@ class OpenApiCompanyScanCreate(BaseModel):
     max_kwp: int = 2500
     limit: int = 10
     dryRun: bool = True
-    dataEnrichment: bool = False
+    dataEnrichment: str | bool | None = None
+    confirmProduction: bool = False
 
 
 class OpenApiCompanyScanRead(BaseModel):
+    requested_limit: int | None = None
+    actual_companies_returned: int | None = None
+    with_coordinates: int | None = None
+    without_coordinates: int | None = None
+    with_address: int | None = None
+    without_address: int | None = None
+    skipped_missing_address: int | None = None
+    skipped_missing_coordinates: int | None = None
+    estimated_or_configured_enrichment_mode: str | None = None
     companies_found: int
     companies_with_coordinates: int
     roofs_analyzed: int
@@ -81,5 +91,7 @@ class ScanRead(BaseModel):
     error: str | None
     started_at: datetime
     finished_at: datetime | None
+    filters_used: dict | None = None
+    debug_info: dict | None = None
 
     model_config = {"from_attributes": True}

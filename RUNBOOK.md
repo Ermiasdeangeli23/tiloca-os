@@ -23,6 +23,7 @@ API endpoints:
 
 - `GET /health`
 - `GET /territories`
+- `GET /territories/{slug}/overview`
 - `GET /assets?territory=&suitability=&min_area_mq=&min_kwp=&limit=`
 - `GET /assets/{asset_id}`
 - `PATCH /assets/{asset_id}/state`
@@ -104,13 +105,21 @@ OPENAPI_COMPANY_BASE_URL=https://company.openapi.com
 OPENAPI_COMPANY_TOKEN=<your_sandbox_or_company_api_token>
 OPENAPI_COMPANY_SANDBOX=true
 OPENAPI_COMPANY_DRY_RUN=true
+OPENAPI_COMPANY_DEFAULT_DATA_ENRICHMENT=address
+OPENAPI_COMPANY_PRODUCTION_MAX_LIMIT=10
 OPENAPI_COMPANY_SEARCH_PATH=/companies/search
 OPENAPI_COMPANY_IT_SEARCH_PATH=/IT-search
 OPENAPI_COMPANY_NEARBY_PATH=/companies/search/nearby
 OPENAPI_COMPANY_DETAILS_PATH=/companies/{company_id_or_vat}
 ```
 
-The app starts without these variables. Keep `OPENAPI_COMPANY_DRY_RUN=true` until you explicitly want to test live OpenAPI calls. Dry-run mode returns the planned count-style request and does not request paid/full datasets. Real production data may require OpenAPI credits or a different enabled product plan.
+The app starts without these variables. Keep `OPENAPI_COMPANY_DRY_RUN=true` until you explicitly want to test live OpenAPI calls. OpenAPI company-led scans default to `dataEnrichment=address`, which is the cheapest safe mode for name/address/GPS validation. Use `advanced` only when explicitly needed because it can cost more.
+
+Production guardrails:
+
+- `dryRun=false` can spend OpenAPI credit.
+- `limit > 10` requires `confirmProduction=true`.
+- `OPENAPI_COMPANY_PRODUCTION_MAX_LIMIT` defaults to `10`; raise it intentionally before larger production batches.
 
 Tiloca should prefer the newer OpenAPI Company API (`company.openapi.com`). The older `imprese.openapi.it` API is being migrated/deprecated, so endpoint paths are environment-configurable while the adapter is still in sandbox validation.
 
@@ -210,11 +219,64 @@ cd C:\Users\Ermias\Documents\Codex\2026-05-13\files-mentioned-by-the-user-tiloca
 .\.venv\Scripts\python.exe -m scripts.api_smoke_test
 ```
 
+OpenAI roof-vision health check, using one existing satellite image:
+
+```powershell
+cd C:\Users\Ermias\Documents\Codex\2026-05-13\files-mentioned-by-the-user-tiloca\tiloca-mvp-backend
+.\.venv\Scripts\python.exe -m scripts.vision_health_check
+```
+
+Expected healthy output:
+
+```text
+VISION HEALTH: PASS
+```
+
+If it prints `VISION HEALTH: FAIL - openai_auth_error`, `missing_openai_api_key`, `openai_rate_limit`, or a parsing reason, fix the OpenAI key/quota/model response before running roof-first scans. This prevents scans from silently persisting assets with `suitability="errore"`.
+
+Clean temporary smoke-test delivery records:
+
+```powershell
+cd C:\Users\Ermias\Documents\Codex\2026-05-13\files-mentioned-by-the-user-tiloca\tiloca-mvp-backend
+.\.venv\Scripts\python.exe -m scripts.cleanup_test_deliveries
+```
+
 Frontend build:
 
 ```powershell
 cd C:\Users\Ermias\Documents\Codex\2026-05-13\files-mentioned-by-the-user-tiloca\tiloca-map-mvp
 npm.cmd run build
+```
+
+## Phase 3.19 Regression Validation
+
+Use this sequence before a delivery demo or Torino/Cuneo production session:
+
+```powershell
+cd C:\Users\Ermias\Documents\Codex\2026-05-13\files-mentioned-by-the-user-tiloca\tiloca-mvp-backend
+.\.venv\Scripts\python.exe -m compileall app scripts
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m scripts.api_smoke_test
+.\.venv\Scripts\python.exe -m scripts.delivery_smoke_test
+```
+
+Current migration chain expected by `alembic upgrade head`:
+
+```text
+0001_initial_schema -> 0002_company_matches -> 0003_delivery_model
+```
+
+Frontend build validation:
+
+```powershell
+cd C:\Users\Ermias\Documents\Codex\2026-05-13\files-mentioned-by-the-user-tiloca\tiloca-map-mvp
+npm.cmd run build
+```
+
+Architecture audit:
+
+```text
+docs\ARCHITECTURE_AUDIT.md
 ```
 
 OpenAPI Company adapter check:
@@ -340,6 +402,43 @@ OpenAPI Company adapter test:
 }
 ```
 
+Territory overview:
+
+```json
+{
+  "territory": {
+    "id": 1,
+    "slug": "torino",
+    "name": "Torino"
+  },
+  "totals": {
+    "buildings_identified": 23,
+    "with_idoneous_roof": 21,
+    "high_suitability": 20,
+    "without_existing_pv": 23,
+    "above_2000mq": 23,
+    "total_installable_kwp": 12500
+  },
+  "kwp_distribution": [
+    { "range": "300-1000", "count": 6 },
+    { "range": "1000-2500", "count": 12 },
+    { "range": "2500-5000", "count": 4 },
+    { "range": ">5000", "count": 1 },
+    { "range": "<300", "count": 0 }
+  ],
+  "by_ateco": [
+    { "category": "25.62", "count": 8 }
+  ],
+  "by_suitability": {
+    "alta": 20,
+    "media": 1,
+    "bassa": 0,
+    "non_analizzato": 2
+  },
+  "last_scan_date": "2026-05-21T10:15:00+00:00"
+}
+```
+
 Scan result:
 
 ```json
@@ -354,11 +453,35 @@ Scan result:
   "persisted_count": 3,
   "rejected_count": 7,
   "skipped_count": 1546,
+  "filters_used": {
+    "max_assets": 10,
+    "min_area_mq": 2000,
+    "max_area_mq": null,
+    "min_kwp": 300,
+    "max_kwp": null,
+    "suitability_levels": []
+  },
+  "debug_info": {
+    "osm_candidates_before_filters": 1556,
+    "candidates_after_area_kwp_filters": 1556,
+    "candidates_selected_for_analysis": 10
+  },
   "error": null,
   "started_at": "...",
   "finished_at": "..."
 }
 ```
+
+PMI-sized roof-first scan example for Brescia/Ingenera preview:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri "http://127.0.0.1:8000/scan/brescia" `
+  -ContentType "application/json" `
+  -Body '{"max_assets":30,"min_area_mq":1500,"max_area_mq":8000}'
+```
+
+`max_area_mq` is applied before selecting `max_assets`, so very large polygons such as 50k+ mq industrial complexes are excluded from the candidate shortlist for that scan. If omitted, roof-first scans keep the previous behavior.
 
 ## Production Workflow
 
@@ -373,6 +496,31 @@ Scan result:
 9. Inspect data quality warnings and manual verification checklist.
 10. Mark assets `qualified` or `report_ready`; exclude bad polygons/matches.
 11. Export report-ready CSV for client delivery.
+
+## Territory Overview Demo Flow
+
+The territory overview is for prospect demos before a client delivery exists. It shows the size and quality of the province pipeline using persisted Tiloca assets only.
+
+Open the frontend route:
+
+```text
+http://127.0.0.1:3001/territories/torino
+```
+
+Validate the backend aggregate endpoint:
+
+```powershell
+Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/territories/torino/overview
+```
+
+Demo sequence:
+
+1. Open `/territories/torino`.
+2. Show big numbers: buildings identified, idoneous roofs, no-FV assets, above 2000 mq, total MWp.
+3. Use the map to show geographic spread and clustering.
+4. Apply suitability, kWp range, and ATECO/category filters.
+5. Point out that the map and metrics recompute from the filtered asset layer.
+6. Use `Run new scan` to move to `/operations` only if the prospect wants to see the scanning workflow.
 
 ## Delivery Workflow
 
@@ -446,10 +594,29 @@ Invoke-RestMethod `
   -Method Post `
   -Uri http://127.0.0.1:8000/company-scan/openapi `
   -ContentType "application/json" `
-  -Body '{"province":"torino","atecoCode":"25.62","minEmployees":5,"maxEmployees":80,"min_area_mq":2000,"max_area_mq":30000,"min_kwp":300,"max_kwp":2500,"limit":2,"dryRun":true}'
+  -Body '{"province":"torino","atecoCode":"25.62","minEmployees":5,"maxEmployees":80,"min_area_mq":2000,"max_area_mq":30000,"min_kwp":300,"max_kwp":2500,"limit":2,"dryRun":true,"dataEnrichment":"address"}'
 ```
 
 Dry-run calls OpenAPI IT-search in dry-run/count mode when the API supports it, but it does not persist assets, analyses, or company matches. To validate the full company-led roof path in sandbox, send `dryRun:false` with a tiny `limit` such as `2`.
+
+Safe production micro-test after sandbox validation:
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/company-scan/openapi `
+  -ContentType "application/json" `
+  -Body '{"province":"torino","atecoCode":"25.62","minEmployees":5,"maxEmployees":80,"min_area_mq":2000,"max_area_mq":30000,"min_kwp":300,"max_kwp":2500,"limit":2,"dryRun":false,"dataEnrichment":"address"}'
+```
+
+Do not use `dataEnrichment:"advanced"` for a production test unless you intentionally want the higher enrichment tier. For production scans above `limit:10`, add `confirmProduction:true` and raise `OPENAPI_COMPANY_PRODUCTION_MAX_LIMIT` deliberately.
+
+OpenAPI parser test:
+
+```powershell
+cd C:\Users\Ermias\Documents\Codex\2026-05-13\files-mentioned-by-the-user-tiloca\tiloca-mvp-backend
+.\.venv\Scripts\python.exe -m scripts.openapi_parsing_test
+```
 
 Phase 3.12 sandbox validation result:
 
@@ -478,6 +645,8 @@ POST /company-scan/openapi dryRun=false limit=2
 [ ] .\.venv\Scripts\python.exe -m scripts.seed_territories passes
 [ ] .\.venv\Scripts\python.exe -m scripts.seed_demo_delivery passes
 [ ] GET /territories includes torino and cuneo
+[ ] GET /territories/torino/overview returns aggregate stats
+[ ] /territories/torino opens and filters update map + big numbers
 [ ] POST /deliveries creates a draft delivery
 [ ] POST /deliveries/{slug}/run-openapi-scan associates assets when dryRun=false and accepted opportunities exist
 [ ] GET /deliveries/{slug}/assets returns only that delivery's assets
@@ -551,7 +720,7 @@ Avoid:
 
 - redesign
 - CRM/contact workflows
-- charts/dashboards
+- generic charts/dashboards outside the planned territory overview
 - auth/billing/users
 - new external enrichment sources
 - changing scoring logic without a real bug

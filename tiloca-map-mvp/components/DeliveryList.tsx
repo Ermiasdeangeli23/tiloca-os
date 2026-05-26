@@ -25,6 +25,14 @@ function statusClass(status: string): string {
   return "border-white/15 text-white/45";
 }
 
+function statusLabel(status: string): string {
+  if (status === "active") return "attiva";
+  if (status === "draft") return "bozza";
+  if (status === "delivered") return "consegnata";
+  if (status === "archived") return "archiviata";
+  return status;
+}
+
 export function DeliveryList({ deliveries }: { deliveries: Delivery[] }) {
   const sorted = [...deliveries].sort((a, b) => {
     const statusDelta = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
@@ -35,7 +43,7 @@ export function DeliveryList({ deliveries }: { deliveries: Delivery[] }) {
   if (!sorted.length) {
     return (
       <div className="field-shell p-8 text-center font-mono text-xs uppercase tracking-[0.16em] text-white/35">
-        No deliveries yet
+        Nessuna delivery presente
       </div>
     );
   }
@@ -43,11 +51,11 @@ export function DeliveryList({ deliveries }: { deliveries: Delivery[] }) {
   return (
     <div className="overflow-hidden border border-white/10">
       <div className="grid grid-cols-[1.4fr_1fr_120px_120px_150px] border-b border-white/10 bg-white/[0.035] px-4 py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-white/32">
-        <div>Client</div>
-        <div>Provinces</div>
+        <div>Cliente</div>
+        <div>Province</div>
         <div>Assets</div>
         <div>Status</div>
-        <div>Updated</div>
+        <div>Aggiornata</div>
       </div>
       {sorted.map((delivery) => (
         <Link
@@ -63,7 +71,7 @@ export function DeliveryList({ deliveries }: { deliveries: Delivery[] }) {
           <div className="font-mono text-xs text-white/65">{delivery.asset_count ?? 0}</div>
           <div>
             <span className={`border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ${statusClass(delivery.status)}`}>
-              {delivery.status}
+              {statusLabel(delivery.status)}
             </span>
           </div>
           <div className="font-mono text-[10px] text-white/42">{fmtDate(delivery.updated_at)}</div>

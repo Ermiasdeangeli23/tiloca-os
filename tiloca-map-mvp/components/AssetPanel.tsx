@@ -54,13 +54,13 @@ function metadataEntries(asset: AssetDetail): Array<[string, string]> {
 }
 
 const warningLabels: Record<DataQualityWarning, string> = {
-  oversized_area: "Oversized area",
-  missing_company_name: "Missing company name",
-  missing_address: "Missing address",
-  generic_osm_asset: "Generic OSM asset",
-  unusually_high_kwp: "Unusually high kWp",
-  needs_manual_geometry_check: "Manual geometry check",
-  low_metadata_confidence: "Low metadata confidence",
+  oversized_area: "Area sovradimensionata",
+  missing_company_name: "Nome azienda mancante",
+  missing_address: "Indirizzo mancante",
+  generic_osm_asset: "Asset OSM generico",
+  unusually_high_kwp: "kWp insolitamente alto",
+  needs_manual_geometry_check: "Verifica geometria",
+  low_metadata_confidence: "Metadati poco affidabili",
 };
 
 function confidenceClass(value: string): string {
@@ -129,23 +129,23 @@ export function AssetPanel({
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
-              Intelligence Dossier
+              Dossier intelligence
             </div>
             <div className="mt-1 font-display text-sm font-semibold text-white/90">
-              {asset ? asset.name || `OSM ${asset.osm_id}` : loading ? "Loading asset" : "No asset"}
+              {asset ? asset.name || `OSM ${asset.osm_id}` : loading ? "Caricamento asset" : "Nessun asset"}
             </div>
           </div>
           <button
             onClick={onClose}
             className="border border-white/10 px-2 py-1 font-mono text-[11px] text-white/55 transition hover:border-white/20 hover:text-white"
           >
-            CLOSE
+            Chiudi
           </button>
         </div>
 
         <div className="thin-scroll flex-1 overflow-y-auto">
           {loading ? (
-            <div className="p-5 font-mono text-xs text-white/50">Loading asset dossier...</div>
+            <div className="p-5 font-mono text-xs text-white/50">Caricamento dossier asset...</div>
           ) : null}
 
           {error ? (
@@ -166,11 +166,11 @@ export function AssetPanel({
                     />
                   ) : (
                     <div className="flex h-56 items-center justify-center bg-slate-950 font-mono text-[10px] uppercase tracking-[0.18em] text-white/30">
-                      Satellite image unavailable
+                      Immagine satellite non disponibile
                     </div>
                   )}
                   <div className="absolute left-3 top-3 flex items-center gap-2">
-                    <Badge value={rank ? `#${rank}` : "unranked"} />
+                    <Badge value={rank ? `#${rank}` : "senza rank"} />
                     <Badge value={fmtCapacity(capacity)} accent />
                     <Badge value={`${score}/100 ${scoreTier}`} accent />
                   </div>
@@ -180,7 +180,7 @@ export function AssetPanel({
               <section className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
-                    Coordinates
+                    Coordinate
                   </div>
                   <div className="font-mono text-[11px] text-white/60">
                     {asset.lat.toFixed(6)}, {asset.lon.toFixed(6)}
@@ -191,72 +191,72 @@ export function AssetPanel({
 
               <section className="grid grid-cols-2 gap-px overflow-hidden border border-white/10 bg-white/10">
                 <Metric label="Rank" value={rank ? `#${rank}` : "-"} valueClass="text-tiloca-green" />
-                <Metric label="Opportunity Score" value={`${score}/100`} valueClass="text-tiloca-green" />
-                <Metric label="Capacity" value={fmtCapacity(capacity)} />
+                <Metric label="Score opportunità" value={`${score}/100`} valueClass="text-tiloca-green" />
+                <Metric label="Capacità" value={fmtCapacity(capacity)} />
                 <Metric label="Area" value={`${fmtNumber(asset.area_mq)} mq`} />
-                <Metric label="Estimated kWp" value={fmtNumber(capacity)} />
-                <Metric label="Roof Type" value={label(asset.roof_type || latestAnalysis?.roof_type)} />
+                <Metric label="kWp stimati" value={fmtNumber(capacity)} />
+                <Metric label="Tipo tetto" value={label(asset.roof_type || latestAnalysis?.roof_type)} />
                 <Metric
-                  label="Suitability"
+                  label="Idoneità"
                   value={label(suitability)}
                   valueClass={suitabilityClass(suitability)}
                 />
-                <Metric label="Report State" value={readiness.replace("_", " ")} />
-                <Metric label="Latest Scan" value={fmtDate(latestAnalysis?.created_at || asset.last_seen_at)} />
+                <Metric label="Stato report" value={readiness.replace("_", " ")} />
+                <Metric label="Ultima scansione" value={fmtDate(latestAnalysis?.created_at || asset.last_seen_at)} />
                 <Metric
-                  label="Data Quality"
+                  label="Qualità dati"
                   value={quality?.confidence || "-"}
                   valueClass={quality ? confidenceClass(quality.confidence) : undefined}
                 />
                 <Metric
-                  label="Recommendation"
+                  label="Raccomandazione"
                   value={recommendation?.recommended_state.replaceAll("_", " ") || "-"}
                 />
                 <Metric
-                  label="Commercial Fit"
+                  label="Fit commerciale"
                   value={fit?.label.replaceAll("_", " ") || "-"}
                   valueClass={fit?.label === "ideal_sme_ci" ? "text-tiloca-green" : "text-tiloca-amber"}
                 />
               </section>
 
-              <DossierBlock title="A. Technical Roof Fit">
+              <DossierBlock title="A. Idoneità tecnica tetto">
                 <div className="grid grid-cols-2 gap-2 font-mono text-[10px] text-white/55">
                   <span>Area</span>
                   <span className="text-right text-white/75">{fmtNumber(asset.area_mq)} mq</span>
-                  <span>Estimated capacity</span>
+                  <span>Capacità stimata</span>
                   <span className="text-right text-white/75">{fmtCapacity(capacity)}</span>
-                  <span>Roof type</span>
+                  <span>Tipo tetto</span>
                   <span className="text-right text-white/75">{label(asset.roof_type || latestAnalysis?.roof_type)}</span>
-                  <span>Roof quality</span>
+                  <span>Qualità tetto</span>
                   <span className="text-right text-white/75">{label(latestAnalysis?.roof_quality)}</span>
-                  <span>Obstacles</span>
+                  <span>Ostacoli</span>
                   <span className="text-right text-white/75">{label(latestAnalysis?.obstacles)}</span>
-                  <span>FV present</span>
-                  <span className="text-right text-white/75">{latestAnalysis?.has_panels ? "yes" : "no"}</span>
+                  <span>FV presente</span>
+                  <span className="text-right text-white/75">{latestAnalysis?.has_panels ? "sì" : "no"}</span>
                 </div>
               </DossierBlock>
 
-              <DossierBlock title="Opportunity Score Components">
+              <DossierBlock title="Componenti score opportunità">
                 <div className="grid grid-cols-2 gap-2 font-mono text-[10px] text-white/55">
-                  <span>Capacity score</span>
+                  <span>Score capacità</span>
                   <span className="text-right text-white/75">{components?.capacity_score ?? "-"}/100</span>
-                  <span>Roof score</span>
+                  <span>Score tetto</span>
                   <span className="text-right text-white/75">{components?.roof_score ?? "-"}/100</span>
-                  <span>PV absence score</span>
+                  <span>Score assenza FV</span>
                   <span className="text-right text-white/75">{components?.pv_absence_score ?? "-"}/100</span>
-                  <span>Industrial score</span>
+                  <span>Score industriale</span>
                   <span className="text-right text-white/75">{components?.industrial_score ?? "-"}/100</span>
                 </div>
               </DossierBlock>
 
-              <DossierBlock title="Data Quality">
+              <DossierBlock title="Qualità dati">
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2 font-mono text-[10px] text-white/55">
-                    <span>Confidence</span>
+                    <span>Confidenza</span>
                     <span className={`text-right ${quality ? confidenceClass(quality.confidence) : "text-white/75"}`}>
                       {quality?.confidence || "-"}
                     </span>
-                    <span>Recommendation</span>
+                    <span>Raccomandazione</span>
                     <span className="text-right text-white/75">
                       {recommendation?.recommended_state.replaceAll("_", " ") || "-"}
                     </span>
@@ -264,7 +264,7 @@ export function AssetPanel({
 
                   <div>
                     <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.16em] text-white/30">
-                      Warnings
+                      Avvisi
                     </div>
                     {quality?.warnings.length ? (
                       <div className="flex flex-wrap gap-1.5">
@@ -279,14 +279,14 @@ export function AssetPanel({
                       </div>
                     ) : (
                       <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-tiloca-green/80">
-                        No data quality warnings
+                        Nessun avviso qualità dati
                       </div>
                     )}
                   </div>
 
                   <div>
                     <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.16em] text-white/30">
-                      Manual checks needed
+                      Verifiche manuali necessarie
                     </div>
                     {quality?.manual_checks.length ? (
                       <ul className="space-y-1.5 font-mono text-[10px] leading-relaxed text-white/58">
@@ -296,7 +296,7 @@ export function AssetPanel({
                       </ul>
                     ) : (
                       <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/38">
-                        No extra manual checks flagged
+                        Nessuna verifica manuale extra segnalata
                       </div>
                     )}
                   </div>
@@ -307,18 +307,18 @@ export function AssetPanel({
                 </div>
               </DossierBlock>
 
-              <DossierBlock title="Commercial Fit">
+              <DossierBlock title="Fit commerciale">
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2 font-mono text-[10px] text-white/55">
-                    <span>Profile</span>
+                    <span>Profilo</span>
                     <span className="text-right text-white/75">{fit?.profile_name || "-"}</span>
-                    <span>Fit label</span>
+                    <span>Etichetta fit</span>
                     <span className="text-right text-white/75">{fit?.label.replaceAll("_", " ") || "-"}</span>
-                    <span>Action</span>
+                    <span>Azione</span>
                     <span className="text-right text-white/75">
                       {fit?.recommended_action.replaceAll("_", " ") || "-"}
                     </span>
-                    <span>Profile max</span>
+                    <span>Max profilo</span>
                     <span className="text-right text-white/75">
                       {fmtNumber(deliveryConfig.max_area_mq)} mq / {fmtNumber(deliveryConfig.max_kwp)} kWp
                     </span>
@@ -330,50 +330,50 @@ export function AssetPanel({
               </DossierBlock>
 
               {latestAnalysis?.notes ? (
-                <DossierBlock title="Notes">
+                <DossierBlock title="Note">
                   <p className="text-sm leading-relaxed text-white/72">{latestAnalysis.notes}</p>
                 </DossierBlock>
               ) : null}
 
-              <DossierBlock title="B. Industrial Context">
+              <DossierBlock title="B. Contesto industriale">
                 <div className="grid grid-cols-2 gap-2 font-mono text-[10px] text-white/55">
-                  <span>Company / asset</span>
+                  <span>Azienda / asset</span>
                   <span className="text-right text-white/75">{asset.name || `OSM ${asset.osm_id}`}</span>
-                  <span>Building type</span>
+                  <span>Tipo edificio</span>
                   <span className="text-right text-white/75">{label(asset.building_type)}</span>
-                  <span>Address</span>
+                  <span>Indirizzo</span>
                   <span className="text-right text-white/75">{label(asset.address)}</span>
-                  <span>Metadata</span>
-                  <span className="text-right text-white/75">{entries.length ? "available" : "missing"}</span>
+                  <span>Metadati</span>
+                  <span className="text-right text-white/75">{entries.length ? "disponibili" : "mancanti"}</span>
                 </div>
               </DossierBlock>
 
-              <DossierBlock title="Company Match">
+              <DossierBlock title="Company match">
                 <div className="space-y-3">
                   {companyMatch && companyMatch.match_confidence !== "none" ? (
                     <div className="grid grid-cols-2 gap-2 font-mono text-[10px] text-white/55">
-                      <span>Company</span>
+                      <span>Azienda</span>
                       <span className="text-right text-white/78">{label(companyMatch.company_name)}</span>
-                      <span>Address</span>
+                      <span>Indirizzo</span>
                       <span className="text-right text-white/78">{label(companyMatch.address)}</span>
                       <span>Website</span>
                       <span className="truncate text-right text-white/78">{label(companyMatch.website)}</span>
-                      <span>Category</span>
+                      <span>Categoria</span>
                       <span className="text-right text-white/78">{label(companyMatch.category)}</span>
-                      <span>Source</span>
+                      <span>Fonte</span>
                       <span className="text-right text-white/78">{companyMatch.source}</span>
-                      <span>Confidence</span>
+                      <span>Confidenza</span>
                       <span className={`text-right ${confidenceClass(companyMatch.match_confidence)}`}>
                         {companyMatch.match_confidence} / {companyMatch.match_score}
                       </span>
-                      <span>Distance</span>
+                      <span>Distanza</span>
                       <span className="text-right text-white/78">
                         {companyMatch.distance_meters !== null ? `${Math.round(companyMatch.distance_meters)} m` : "-"}
                       </span>
                     </div>
                   ) : (
                     <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/35">
-                      No reliable company match found
+                      Nessun company match affidabile trovato
                     </div>
                   )}
 
@@ -394,77 +394,77 @@ export function AssetPanel({
                     disabled={companyMatchLoading}
                     className="w-full border border-tiloca-green/30 bg-tiloca-green/10 px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.16em] text-tiloca-green transition hover:bg-tiloca-green/15 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {companyMatchLoading ? "Matching company..." : "Find company match"}
+                    {companyMatchLoading ? "Ricerca company match..." : "Trova company match"}
                   </button>
                 </div>
               </DossierBlock>
 
-              <DossierBlock title="Latest Scan">
+              <DossierBlock title="Ultima scansione">
                 <div className="grid grid-cols-2 gap-2 font-mono text-[10px] text-white/55">
                   <span>Scan ID</span>
                   <span className="text-right text-white/75">{latestAnalysis?.scan_id ?? "-"}</span>
-                  <span>Panels detected</span>
-                  <span className="text-right text-white/75">{latestAnalysis?.has_panels ? "yes" : "no"}</span>
-                  <span>Roof quality</span>
+                  <span>Pannelli rilevati</span>
+                  <span className="text-right text-white/75">{latestAnalysis?.has_panels ? "sì" : "no"}</span>
+                  <span>Qualità tetto</span>
                   <span className="text-right text-white/75">{label(latestAnalysis?.roof_quality)}</span>
-                  <span>Orientation</span>
+                  <span>Orientamento</span>
                   <span className="text-right text-white/75">{label(latestAnalysis?.orientation)}</span>
-                  <span>Obstacles</span>
+                  <span>Ostacoli</span>
                   <span className="text-right text-white/75">{label(latestAnalysis?.obstacles)}</span>
                 </div>
               </DossierBlock>
 
-              <DossierBlock title="C. Next Action">
+              <DossierBlock title="C. Prossima azione">
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2 font-mono text-[10px] text-white/55">
-                    <span>Status</span>
+                    <span>Stato</span>
                     <span className="text-right text-white/75">{readiness.replace("_", " ")}</span>
-                    <span>Suggested action</span>
+                    <span>Azione suggerita</span>
                     <span className="text-right text-white/75">
                       {recommendation?.recommended_state
                         ? recommendation.recommended_state.replaceAll("_", " ")
                         : readiness === "report_ready"
-                        ? "include in report"
+                        ? "includi nel report"
                         : readiness === "excluded"
-                          ? "keep excluded"
+                          ? "mantieni escluso"
                           : score >= 75
-                            ? "validate for report"
-                            : "review manually"}
+                            ? "valida per report"
+                            : "verifica manualmente"}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 gap-2">
                     <StateButton
-                      label="Mark qualified"
+                      label="Marca qualificata"
                       active={readiness === "qualified"}
                       onClick={() => onStateChange(asset.id, "qualified")}
                     />
                     <StateButton
-                      label="Mark report-ready"
+                      label="Marca pronta per report"
                       active={readiness === "report_ready"}
                       onClick={() => onStateChange(asset.id, "report_ready")}
                     />
                     <StateButton
-                      label="Exclude"
+                      label="Escludi"
                       danger
                       active={readiness === "excluded"}
                       onClick={() => onStateChange(asset.id, "excluded")}
                     />
                   </div>
                   <p className="font-mono text-[10px] leading-relaxed text-white/35">
-                    Shortlist state is persisted in the Tiloca database for internal production review.
+                    Lo stato shortlist è salvato nel database Tiloca per revisione interna.
                   </p>
                 </div>
               </DossierBlock>
 
-              <DossierBlock title="Manual Verification Checklist">
+              <DossierBlock title="Checklist verifica manuale">
                 <div className="space-y-1.5">
                   {[
-                    ["company", "company name verified"],
-                    ["address", "address verified"],
-                    ["geometry", "roof geometry plausible"],
-                    ["pv_absence", "FV absence confirmed"],
-                    ["industrial_activity", "industrial activity plausible"],
-                    ["client_report", "ready for client report"],
+                    ["company", "nome azienda verificato"],
+                    ["address", "indirizzo verificato"],
+                    ["geometry", "geometria tetto plausibile"],
+                    ["pv_absence", "assenza FV confermata"],
+                    ["industrial_activity", "attività industriale plausibile"],
+                    ["client_report", "pronto per report cliente"],
                   ].map(([key, text]) => (
                     <button
                       key={key}
@@ -476,22 +476,22 @@ export function AssetPanel({
                       }`}
                     >
                       <span>{text}</span>
-                      <span>{verification[key] ? "done" : "open"}</span>
+                      <span>{verification[key] ? "fatto" : "aperto"}</span>
                     </button>
                   ))}
                 </div>
                 <p className="mt-3 font-mono text-[10px] leading-relaxed text-white/32">
-                  Checklist is local for this review session; report state remains the persisted delivery control.
+                  La checklist è locale per questa sessione; lo stato report resta il controllo persistente.
                 </p>
               </DossierBlock>
 
               {asset.address ? (
-                <DossierBlock title="Address">
+                <DossierBlock title="Indirizzo">
                   <p className="text-sm leading-relaxed text-white/70">{asset.address}</p>
                 </DossierBlock>
               ) : null}
 
-              <DossierBlock title="Industrial Metadata">
+              <DossierBlock title="Metadati industriali">
                 {entries.length ? (
                   <div className="overflow-hidden border border-white/10">
                     {entries.map(([key, value]) => (
@@ -508,7 +508,7 @@ export function AssetPanel({
                   </div>
                 ) : (
                   <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/30">
-                    No metadata persisted
+                    Nessun metadato salvato
                   </div>
                 )}
               </DossierBlock>

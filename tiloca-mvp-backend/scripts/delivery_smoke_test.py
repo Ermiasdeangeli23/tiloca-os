@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import time
 from typing import Any
-
-import requests
+from urllib import error, request
 
 
 API_BASE = "http://127.0.0.1:8000"
@@ -18,10 +17,24 @@ def fail_step(message: str) -> None:
 
 
 def request_json(method: str, path: str, **kwargs: Any) -> Any:
-    response = requests.request(method, f"{API_BASE}{path}", timeout=180, **kwargs)
-    if response.status_code >= 400:
-        raise RuntimeError(f"{method} {path} failed: {response.status_code} {response.text[:500]}")
-    return response.json()
+    body = kwargs.get("json")
+    headers = {"Accept": "application/json"}
+    data = None
+    if body is not None:
+        import json
+
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    req = request.Request(f"{API_BASE}{path}", data=data, headers=headers, method=method)
+    try:
+        with request.urlopen(req, timeout=180) as response:
+            content = response.read()
+    except error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"{method} {path} failed: {exc.code} {detail[:500]}") from exc
+    import json
+
+    return json.loads(content.decode("utf-8"))
 
 
 def main() -> int:

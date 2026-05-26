@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     openapi_company_it_search_path: str = "/IT-search"
     openapi_company_nearby_path: str = "/companies/search/nearby"
     openapi_company_details_path: str = "/companies/{company_id_or_vat}"
+    openapi_company_default_data_enrichment: str = "address"
+    openapi_company_production_max_limit: int = 10
     satellite_storage_dir: Path = Path("storage/satellite")
     default_scan_limit: int = 30
 

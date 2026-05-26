@@ -16,6 +16,7 @@ from app.core.config import get_settings
 from app.models.company_match import CompanyMatch
 from app.models.scan import Scan
 from app.models.territory import Territory
+from app.services import openapi_company_parser as company_parser
 from app.services.persistence import persist_asset_analysis
 from app.services.satellite_fetch import fetch_satellite_image, safe_asset_name
 from app.services.scoring import estimate_kwp, should_keep_analysis
@@ -24,6 +25,15 @@ from app.services.vision_analysis import analyze_roof
 
 @dataclass
 class OpenApiCompanyScanResult:
+    requested_limit: int
+    actual_companies_returned: int
+    with_coordinates: int
+    without_coordinates: int
+    with_address: int
+    without_address: int
+    skipped_missing_address: int
+    skipped_missing_coordinates: int
+    estimated_or_configured_enrichment_mode: str
     companies_found: int
     companies_with_coordinates: int
     roofs_analyzed: int
@@ -37,6 +47,15 @@ class OpenApiCompanyScanResult:
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "requested_limit": self.requested_limit,
+            "actual_companies_returned": self.actual_companies_returned,
+            "with_coordinates": self.with_coordinates,
+            "without_coordinates": self.without_coordinates,
+            "with_address": self.with_address,
+            "without_address": self.without_address,
+            "skipped_missing_address": self.skipped_missing_address,
+            "skipped_missing_coordinates": self.skipped_missing_coordinates,
+            "estimated_or_configured_enrichment_mode": self.estimated_or_configured_enrichment_mode,
             "companies_found": self.companies_found,
             "companies_with_coordinates": self.companies_with_coordinates,
             "roofs_analyzed": self.roofs_analyzed,
@@ -64,10 +83,23 @@ def run_openapi_company_scan(
     max_kwp: int = 2500,
     limit: int = 10,
     dry_run: bool = True,
-    data_enrichment: bool = False,
+    data_enrichment: str | bool | None = None,
+    confirm_production: bool = False,
 ) -> OpenApiCompanyScanResult:
     settings = get_settings()
-    capped_limit = min(max(limit or 10, 1), 50)
+    requested_limit = max(limit or 10, 1)
+    production_max_limit = max(settings.openapi_company_production_max_limit or 10, 1)
+    if not dry_run and requested_limit > 10 and not confirm_production:
+        raise RuntimeError(
+            "OpenAPI production scan limit > 10 requires confirmProduction=true to prevent accidental credit use."
+        )
+    if not dry_run and requested_limit > production_max_limit:
+        raise RuntimeError(
+            f"OpenAPI production scan limit {requested_limit} exceeds configured "
+            f"OPENAPI_COMPANY_PRODUCTION_MAX_LIMIT={production_max_limit}."
+        )
+    capped_limit = min(requested_limit, 50 if dry_run else production_max_limit)
+    enrichment_mode = _normalize_data_enrichment(data_enrichment, settings.openapi_company_default_data_enrichment)
     province_slug = province.lower()
     territory = db.query(Territory).filter(Territory.slug == province_slug).first()
     if territory is None:
@@ -78,6 +110,15 @@ def run_openapi_company_scan(
         configured_token = configured_token[7:].strip()
     if not settings.openapi_company_base_url or not configured_token:
         return OpenApiCompanyScanResult(
+            requested_limit=requested_limit,
+            actual_companies_returned=0,
+            with_coordinates=0,
+            without_coordinates=0,
+            with_address=0,
+            without_address=0,
+            skipped_missing_address=0,
+            skipped_missing_coordinates=0,
+            estimated_or_configured_enrichment_mode=enrichment_mode,
             companies_found=0,
             companies_with_coordinates=0,
             roofs_analyzed=0,
@@ -99,12 +140,30 @@ def run_openapi_company_scan(
         activity_status=activity_status,
         limit=capped_limit,
         dry_run=effective_dry_run,
-        data_enrichment=data_enrichment,
+        data_enrichment=enrichment_mode,
     )
 
     search = _call_openapi_it_search(search_params)
+    request_debug = _openapi_request_diagnostics(
+        search=search,
+        territory=territory,
+        ateco_code=ateco_code,
+        min_employees=min_employees,
+        max_employees=max_employees,
+        data_enrichment=enrichment_mode,
+        dry_run=effective_dry_run,
+    )
     if search["status"] in {"missing_config", "request_failed", "api_error"}:
         return OpenApiCompanyScanResult(
+            requested_limit=requested_limit,
+            actual_companies_returned=0,
+            with_coordinates=0,
+            without_coordinates=0,
+            with_address=0,
+            without_address=0,
+            skipped_missing_address=0,
+            skipped_missing_coordinates=0,
+            estimated_or_configured_enrichment_mode=enrichment_mode,
             companies_found=0,
             companies_with_coordinates=0,
             roofs_analyzed=0,
@@ -113,22 +172,31 @@ def run_openapi_company_scan(
             cost_estimate=search.get("cost_estimate"),
             status=search["status"],
             error=search.get("error"),
-            debug_info=search.get("debug_info"),
+            debug_info={**request_debug, **(search.get("debug_info") or {})},
         )
 
     companies = _extract_companies(search.get("data"))
     cost_estimate = _extract_cost_estimate(search.get("data"))
-    coordinate_debug = _coordinate_debug_counters(companies)
+    company_debug = _company_debug_counters(companies)
     if effective_dry_run:
         return OpenApiCompanyScanResult(
+            requested_limit=requested_limit,
+            actual_companies_returned=len(companies),
+            with_coordinates=company_debug["companies_with_coordinates"],
+            without_coordinates=company_debug["companies_without_coordinates"],
+            with_address=company_debug["companies_with_address"],
+            without_address=company_debug["companies_without_address"],
+            skipped_missing_address=0,
+            skipped_missing_coordinates=0,
+            estimated_or_configured_enrichment_mode=enrichment_mode,
             companies_found=len(companies),
-            companies_with_coordinates=coordinate_debug["companies_with_coordinates"],
+            companies_with_coordinates=company_debug["companies_with_coordinates"],
             roofs_analyzed=0,
             accepted_opportunities=0,
             rejected_opportunities=0,
             cost_estimate=cost_estimate,
             status="dry_run",
-            debug_info=coordinate_debug,
+            debug_info={**company_debug, **request_debug},
         )
 
     scan = Scan(
@@ -143,6 +211,15 @@ def run_openapi_company_scan(
     db.refresh(scan)
 
     result = OpenApiCompanyScanResult(
+        requested_limit=requested_limit,
+        actual_companies_returned=len(companies),
+        with_coordinates=company_debug["companies_with_coordinates"],
+        without_coordinates=company_debug["companies_without_coordinates"],
+        with_address=company_debug["companies_with_address"],
+        without_address=company_debug["companies_without_address"],
+        skipped_missing_address=0,
+        skipped_missing_coordinates=0,
+        estimated_or_configured_enrichment_mode=enrichment_mode,
         companies_found=len(companies),
         companies_with_coordinates=0,
         roofs_analyzed=0,
@@ -150,7 +227,7 @@ def run_openapi_company_scan(
         rejected_opportunities=0,
         cost_estimate=cost_estimate,
         status="running",
-        debug_info={**coordinate_debug, "rejection_reasons": {}},
+        debug_info={**company_debug, **request_debug, "rejection_reasons": {}},
         asset_ids=[],
     )
 
@@ -158,8 +235,14 @@ def run_openapi_company_scan(
         storage_dir = Path(settings.satellite_storage_dir) / territory.slug / f"openapi_company_scan_{scan.id}"
 
         for index, company in enumerate(companies[:capped_limit], start=1):
+            if not _company_address(company):
+                result.skipped_missing_address += 1
+                result.rejected_opportunities += 1
+                _count_rejection(result, "missing_openapi_address")
+                continue
             coords = _company_coordinates(company)
             if coords is None:
+                result.skipped_missing_coordinates += 1
                 result.rejected_opportunities += 1
                 _count_rejection(result, "missing_openapi_coordinates")
                 continue
@@ -246,11 +329,11 @@ def _build_search_params(
     activity_status: str | None,
     limit: int,
     dry_run: bool,
-    data_enrichment: bool,
+    data_enrichment: str,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {
         "dryRun": 1 if dry_run else 0,
-        "dataEnrichment": "advanced" if data_enrichment else "advanced",
+        "dataEnrichment": data_enrichment,
         "province": _province_code(province),
         "limit": limit,
     }
@@ -267,6 +350,24 @@ def _build_search_params(
     if activity_status:
         params["activityStatus"] = activity_status
     return params
+
+
+def _normalize_data_enrichment(value: str | bool | None, default_value: str | None) -> str:
+    if isinstance(value, bool):
+        return "advanced" if value else _normalize_data_enrichment(default_value, "address")
+    selected = (value or default_value or "address").strip().lower()
+    aliases = {
+        "": "address",
+        "false": "address",
+        "true": "advanced",
+        "none": "address",
+        "base": "address",
+    }
+    selected = aliases.get(selected, selected)
+    allowed = {"name", "address", "start", "advanced", "pec", "shareholders"}
+    if selected not in allowed:
+        return "address"
+    return selected
 
 
 def _call_openapi_it_search(params: dict[str, Any]) -> dict[str, Any]:
@@ -313,6 +414,36 @@ def _call_openapi_it_search(params: dict[str, Any]) -> dict[str, Any]:
     except ValueError:
         data = {"raw_text": response.text[:1000]}
     return {"status": "ok", "data": data, "request": safe_request, "debug_info": debug_info}
+
+
+def _openapi_request_diagnostics(
+    search: dict[str, Any],
+    territory: Territory,
+    ateco_code: str | None,
+    min_employees: int | None,
+    max_employees: int | None,
+    data_enrichment: str,
+    dry_run: bool,
+) -> dict[str, Any]:
+    request_info = search.get("request") or {}
+    request_payload = request_info.get("params") or {}
+    return {
+        "request_url": request_info.get("url"),
+        "request_payload": request_payload,
+        "territory": {
+            "slug": territory.slug,
+            "name": territory.name,
+        },
+        "ateco_filters_used": {
+            "atecoCode": ateco_code,
+        },
+        "employee_filters_used": {
+            "minEmployees": min_employees,
+            "maxEmployees": max_employees,
+        },
+        "dataEnrichment": data_enrichment,
+        "dryRun": 1 if dry_run else 0,
+    }
 
 
 def _openapi_auth_debug(url: str, params: dict[str, Any], token: str) -> dict[str, Any]:
@@ -377,11 +508,23 @@ def _company_coordinates(company: dict[str, Any]) -> tuple[float, float] | None:
         company.get("geo"),
         company.get("location"),
         company.get("coordinates"),
+        (company.get("address") or {}).get("gps") if isinstance(company.get("address"), dict) else None,
         (company.get("address") or {}).get("geo") if isinstance(company.get("address"), dict) else None,
     ]
     for value in candidates:
+        if isinstance(value, list) and len(value) >= 2:
+            lon = value[0]
+            lat = value[1]
+            if lat is not None and lon is not None:
+                return float(lat), float(lon)
         if not isinstance(value, dict):
             continue
+        coordinates = value.get("coordinates")
+        if isinstance(coordinates, list) and len(coordinates) >= 2:
+            lon = coordinates[0]
+            lat = coordinates[1]
+            if lat is not None and lon is not None:
+                return float(lat), float(lon)
         lat = value.get("lat") or value.get("latitude")
         lon = value.get("lon") or value.get("lng") or value.get("longitude")
         if lat is not None and lon is not None:
@@ -394,6 +537,9 @@ def _company_coordinates(company: dict[str, Any]) -> tuple[float, float] | None:
 
 
 def _registered_office(company: dict[str, Any]) -> dict[str, Any] | None:
+    direct = company.get("registeredOffice")
+    if isinstance(direct, dict):
+        return direct
     address = company.get("address")
     if not isinstance(address, dict):
         return None
@@ -401,10 +547,11 @@ def _registered_office(company: dict[str, Any]) -> dict[str, Any] | None:
     return registered_office if isinstance(registered_office, dict) else None
 
 
-def _coordinate_debug_counters(companies: list[dict[str, Any]]) -> dict[str, Any]:
+def _company_debug_counters(companies: list[dict[str, Any]]) -> dict[str, Any]:
     with_registered_office = 0
     with_gps_object = 0
     with_coordinates = 0
+    with_address = 0
 
     for company in companies:
         registered_office = _registered_office(company)
@@ -416,12 +563,17 @@ def _coordinate_debug_counters(companies: list[dict[str, Any]]) -> dict[str, Any
         coordinates = gps.get("coordinates") if isinstance(gps, dict) else None
         if isinstance(coordinates, list) and len(coordinates) >= 2:
             with_coordinates += 1
+        if _company_address(company):
+            with_address += 1
 
     return {
         "companies_found": len(companies),
         "companies_with_registered_office": with_registered_office,
         "companies_with_gps_object": with_gps_object,
         "companies_with_coordinates": with_coordinates,
+        "companies_without_coordinates": max(len(companies) - with_coordinates, 0),
+        "companies_with_address": with_address,
+        "companies_without_address": max(len(companies) - with_address, 0),
     }
 
 
@@ -573,15 +725,28 @@ def _persist_openapi_company_match(db: Session, asset_id: int, company: dict[str
 
 
 def _safe_company_metadata(company: dict[str, Any]) -> dict[str, Any]:
+    office = _registered_office(company) or {}
     return {
         "company_name": _company_name(company),
         "vat_or_tax_code": _company_identifier(company),
         "ateco": _company_ateco(company),
+        "registered_office_address": _company_address(company),
+        "registered_office_city": _company_city(company),
+        "registered_office_province": _company_province(company),
+        "registered_office_postal_code": _company_postal_code(company),
         "employees": _first_value(company, ["employees", "dipendenti", "numeroDipendenti"]),
         "turnover": _first_value(company, ["turnover", "fatturato", "revenue"]),
         "pec": _first_value(company, ["pec", "pecAddress", "mailPec"]),
         "legal_status": _first_value(company, ["legalStatus", "statoAttivita", "activityStatus"]),
         "address": _company_address(company),
+        "registered_office": {
+            "street": office.get("street"),
+            "street_number": office.get("streetNumber"),
+            "street_name": office.get("streetName"),
+            "town": office.get("town"),
+            "province": office.get("province"),
+            "zip_code": office.get("zipCode"),
+        },
     }
 
 
@@ -597,26 +762,95 @@ def _company_identifier(company: dict[str, Any]) -> str:
 def _company_ateco(company: dict[str, Any]) -> str | None:
     value = _first_value(company, ["atecoCode", "ateco", "codiceAteco"])
     if value:
-        return value
+        if isinstance(value, dict):
+            return _first_value(value, ["code", "codice", "atecoCode", "description", "descrizione"])
+        return str(value)
     ateco = company.get("ateco")
     if isinstance(ateco, dict):
         return _first_value(ateco, ["code", "codice", "atecoCode"])
+    activity = company.get("activity")
+    if isinstance(activity, dict):
+        return _first_value(activity, ["atecoCode", "code", "description"])
     return None
 
 
 def _company_address(company: dict[str, Any]) -> str | None:
-    direct = _first_value(company, ["address", "indirizzo", "registeredOfficeAddress", "sedeLegale"])
+    direct = _first_value(company, ["registeredOfficeAddress", "sedeLegale", "indirizzo"])
     if isinstance(direct, str):
         return direct
+    office = _registered_office(company)
+    if isinstance(office, dict):
+        address = _format_address(
+            [
+                office.get("streetName"),
+                " ".join(
+                    str(part)
+                    for part in [office.get("toponym"), office.get("street"), office.get("streetNumber")]
+                    if part not in (None, "")
+                ).strip(),
+                office.get("town"),
+                office.get("province"),
+                office.get("zipCode"),
+            ]
+        )
+        if address:
+            return address
+    direct = company.get("address")
     if isinstance(direct, dict):
-        parts = [
-            direct.get("street") or direct.get("via"),
-            direct.get("streetNumber") or direct.get("civico"),
-            direct.get("city") or direct.get("comune"),
-            direct.get("province") or direct.get("provincia"),
-        ]
-        return " ".join(str(part) for part in parts if part)
+        return _format_address(
+            [
+                direct.get("streetName"),
+                direct.get("street") or direct.get("via"),
+                direct.get("streetNumber") or direct.get("civico"),
+                direct.get("city") or direct.get("comune") or direct.get("town"),
+                direct.get("province") or direct.get("provincia"),
+                direct.get("zipCode") or direct.get("cap"),
+            ]
+        )
+    if isinstance(direct, str):
+        return direct
     return None
+
+
+def _company_city(company: dict[str, Any]) -> str | None:
+    office = _registered_office(company)
+    if isinstance(office, dict):
+        return _first_value(office, ["town", "city", "comune"])
+    address = company.get("address")
+    if isinstance(address, dict):
+        return _first_value(address, ["town", "city", "comune"])
+    return None
+
+
+def _company_province(company: dict[str, Any]) -> str | None:
+    office = _registered_office(company)
+    if isinstance(office, dict):
+        return _first_value(office, ["province", "provincia"])
+    address = company.get("address")
+    if isinstance(address, dict):
+        return _first_value(address, ["province", "provincia"])
+    return None
+
+
+def _company_postal_code(company: dict[str, Any]) -> str | None:
+    office = _registered_office(company)
+    if isinstance(office, dict):
+        return _first_value(office, ["zipCode", "cap", "postalCode"])
+    address = company.get("address")
+    if isinstance(address, dict):
+        return _first_value(address, ["zipCode", "cap", "postalCode"])
+    return None
+
+
+def _format_address(parts: list[Any]) -> str | None:
+    normalized: list[str] = []
+    for part in parts:
+        if part in (None, ""):
+            continue
+        text = str(part).strip()
+        if text and text not in normalized:
+            normalized.append(text)
+    return " ".join(normalized) if normalized else None
 
 
 def _first_value(source: dict[str, Any], keys: list[str]) -> Any:
@@ -625,3 +859,18 @@ def _first_value(source: dict[str, Any], keys: list[str]) -> Any:
         if value not in (None, ""):
             return value
     return None
+
+
+_company_coordinates = company_parser.company_coordinates
+_registered_office = company_parser.registered_office_data
+_company_debug_counters = company_parser.company_debug_counters
+_safe_company_metadata = company_parser.safe_company_metadata
+_company_name = company_parser.company_name
+_company_identifier = company_parser.company_identifier
+_company_ateco = company_parser.company_ateco
+_company_address = company_parser.company_address
+_company_city = company_parser.company_city
+_company_province = company_parser.company_province
+_company_postal_code = company_parser.company_postal_code
+_format_address = company_parser.format_address
+_first_value = company_parser.first_value

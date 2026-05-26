@@ -76,16 +76,16 @@ export function NewDeliveryModal({ open, creating, onClose, onCreate }: NewDeliv
           <div>
             <div className="font-display text-lg font-semibold text-white">Nuova delivery</div>
             <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
-              Client work container
+              Contenitore operativo cliente
             </div>
           </div>
           <button onClick={onClose} className="border border-white/10 px-2 py-1 font-mono text-xs text-white/55">
-            CLOSE
+            Chiudi
           </button>
         </div>
 
         <div className="thin-scroll max-h-[70vh] space-y-4 overflow-y-auto py-5">
-          <Field label="Client name">
+          <Field label="Nome cliente">
             <input
               value={clientName}
               onChange={(event) => setClientName(event.target.value)}
@@ -96,7 +96,7 @@ export function NewDeliveryModal({ open, creating, onClose, onCreate }: NewDeliv
 
           <div>
             <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/32">
-              Target provinces
+              Province target
             </div>
             <div className="grid grid-cols-3 gap-1">
               {provinceOptions.map((province) => (
@@ -115,7 +115,7 @@ export function NewDeliveryModal({ open, creating, onClose, onCreate }: NewDeliv
             </div>
           </div>
 
-          <Field label="ATECO codes">
+          <Field label="Codici ATECO">
             <input
               value={atecoCodes}
               onChange={(event) => setAtecoCodes(event.target.value)}
@@ -128,9 +128,9 @@ export function NewDeliveryModal({ open, creating, onClose, onCreate }: NewDeliv
             <NumberField label="Max area" value={maxArea} onChange={setMaxArea} />
             <NumberField label="Min kWp" value={minKwp} onChange={setMinKwp} />
             <NumberField label="Max kWp" value={maxKwp} onChange={setMaxKwp} />
-            <NumberField label="Min employees" value={minEmployees} onChange={setMinEmployees} />
-            <NumberField label="Max employees" value={maxEmployees} onChange={setMaxEmployees} />
-            <NumberField label="Target opportunities" value={targetCount} onChange={setTargetCount} />
+            <NumberField label="Min addetti" value={minEmployees} onChange={setMinEmployees} />
+            <NumberField label="Max addetti" value={maxEmployees} onChange={setMaxEmployees} />
+            <NumberField label="Opportunità target" value={targetCount} onChange={setTargetCount} />
           </div>
         </div>
 
@@ -139,7 +139,7 @@ export function NewDeliveryModal({ open, creating, onClose, onCreate }: NewDeliv
           disabled={creating || !clientName.trim() || !targetProvinces.length}
           className="w-full border border-tiloca-green/35 bg-tiloca-green/10 px-4 py-3 text-left font-mono text-[11px] uppercase tracking-[0.16em] text-tiloca-green disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {creating ? "Creating delivery..." : "Create draft delivery"}
+          {creating ? "Creazione delivery..." : "Crea delivery bozza"}
         </button>
       </div>
     </div>

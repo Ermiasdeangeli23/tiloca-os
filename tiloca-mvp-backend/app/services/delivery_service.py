@@ -172,6 +172,7 @@ def run_scan_for_delivery(db: Session, slug: str) -> dict[str, Any]:
             limit=criteria.get("limit", 10),
             dry_run=criteria.get("dryRun", criteria.get("dry_run", True)),
             data_enrichment=criteria.get("dataEnrichment", criteria.get("data_enrichment", False)),
+            confirm_production=criteria.get("confirmProduction", criteria.get("confirm_production", False)),
         )
         scan_results.append(result.as_dict())
         for asset_id in result.asset_ids or []:

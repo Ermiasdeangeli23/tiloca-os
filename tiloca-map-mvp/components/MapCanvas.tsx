@@ -89,6 +89,7 @@ type MapCanvasProps = {
   selectedTerritory: Territory | null;
   onAssetSelect: (id: number) => void;
   onPolygonChange?: (polygon: LngLatTuple[] | null) => void;
+  layout?: "console" | "full";
 };
 
 export function MapCanvas({
@@ -97,6 +98,7 @@ export function MapCanvas({
   selectedTerritory,
   onAssetSelect,
   onPolygonChange,
+  layout = "console",
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -117,6 +119,15 @@ export function MapCanvas({
   const selectedAsset = useMemo(
     () => assets.find((asset) => asset.id === selectedAssetId) || null,
     [assets, selectedAssetId]
+  );
+  const leftOverlayClass = layout === "full" ? "left-6" : "left-[320px]";
+  const rightOverlayClass = layout === "full" ? "right-6" : "right-[430px]";
+  const fitPadding = useMemo(
+    () =>
+      layout === "full"
+        ? { left: 80, right: 80, top: 90, bottom: 80 }
+        : { left: 340, right: 440, top: 100, bottom: 80 },
+    [layout]
   );
   const polygonGeoJson = useMemo<FeatureCollection<Polygon>>(() => {
     const ring = polygonCoords || draftCoords;
@@ -202,14 +213,14 @@ export function MapCanvas({
     if (map) map.getCanvas().style.cursor = "crosshair";
   }, [onPolygonChange]);
 
-  const renderHtmlMarkers = useCallback(() => {
+  const renderHtmlMarkers = useCallback((nextAssets: RankedAsset[] = assetsRef.current) => {
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
 
     htmlMarkersRef.current.forEach((marker) => marker.remove());
     htmlMarkersRef.current.clear();
 
-    const currentAssets = assetsRef.current;
+    const currentAssets = nextAssets;
     const validAssets = currentAssets.filter(
       (asset) =>
         Number.isFinite(asset.lon) &&
@@ -538,8 +549,8 @@ export function MapCanvas({
     if (!map || !loadedRef.current) return;
     const source = map.getSource("assets") as mapboxgl.GeoJSONSource | undefined;
     source?.setData(geoJson);
-    renderHtmlMarkers();
-  }, [geoJson, renderHtmlMarkers]);
+    renderHtmlMarkers(assets);
+  }, [assets, geoJson, renderHtmlMarkers]);
 
   useEffect(() => {
     updateDrawSource();
@@ -564,11 +575,11 @@ export function MapCanvas({
       new mapboxgl.LngLatBounds([assets[0].lon, assets[0].lat], [assets[0].lon, assets[0].lat])
     );
     map.fitBounds(bounds, {
-      padding: { left: 340, right: 440, top: 100, bottom: 80 },
+      padding: fitPadding,
       maxZoom: 13,
       duration: 700,
     });
-  }, [assets, selectedAssetId]);
+  }, [assets, fitPadding, selectedAssetId]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -578,9 +589,9 @@ export function MapCanvas({
         [selectedTerritory.bbox_lon_min, selectedTerritory.bbox_lat_min],
         [selectedTerritory.bbox_lon_max, selectedTerritory.bbox_lat_max],
       ],
-      { padding: { left: 340, right: 440, top: 90, bottom: 80 }, duration: 700 }
+      { padding: fitPadding, duration: 700 }
     );
-  }, [assets.length, selectedTerritory]);
+  }, [assets.length, fitPadding, selectedTerritory]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -618,35 +629,35 @@ export function MapCanvas({
     <div className="absolute inset-0">
       <div ref={containerRef} className="h-full w-full bg-[#080f1a]" />
       {!process.env.NEXT_PUBLIC_MAPBOX_TOKEN ? (
-        <div className="absolute left-[320px] top-5 border border-red-400/30 bg-red-950/70 px-3 py-2 font-mono text-xs text-red-100">
+        <div className={`absolute ${leftOverlayClass} top-5 border border-red-400/30 bg-red-950/70 px-3 py-2 font-mono text-xs text-red-100`}>
           MAPBOX TOKEN MISSING
         </div>
       ) : null}
-      <div className="absolute right-[430px] top-20 z-10 flex gap-2 font-mono text-[10px] uppercase tracking-[0.14em]">
+      <div className={`absolute ${rightOverlayClass} top-20 z-10 flex gap-2 font-mono text-[10px] uppercase tracking-[0.14em]`}>
         <button
           onClick={isDrawing ? finishArea : startArea}
           className="border border-tiloca-green/30 bg-[#080f1a]/85 px-3 py-2 text-tiloca-green backdrop-blur-md disabled:opacity-40"
           disabled={isDrawing && draftCoords.length < 3}
         >
-          {isDrawing ? "Finish area" : "Draw area"}
+          {isDrawing ? "Chiudi area" : "Disegna area"}
         </button>
         <button
           onClick={clearArea}
           className="border border-white/10 bg-[#080f1a]/85 px-3 py-2 text-white/55 backdrop-blur-md disabled:opacity-35"
           disabled={!polygonCoords && !isDrawing}
         >
-          Clear area
+          Pulisci area
         </button>
       </div>
       {isDrawing ? (
-        <div className="absolute right-[430px] top-[126px] z-10 border border-white/10 bg-[#080f1a]/82 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 backdrop-blur-md">
-          Click map points. Finish with 3+ points.
+        <div className={`absolute ${rightOverlayClass} top-[126px] z-10 border border-white/10 bg-[#080f1a]/82 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 backdrop-blur-md`}>
+          Clicca i punti in mappa. Chiudi con 3+ punti.
         </div>
       ) : null}
       {areaStats ? (
-        <div className="absolute left-[320px] top-24 z-10 w-[210px] border border-tiloca-green/30 bg-[rgba(10,14,10,0.85)] p-3 font-mono text-[10px] uppercase tracking-[0.13em] text-white/58 backdrop-blur-md">
-          <div className="mb-3 text-tiloca-green">Area stats</div>
-          <AreaStat label="Total" value={areaStats.total} />
+        <div className={`absolute ${leftOverlayClass} top-24 z-10 w-[210px] border border-tiloca-green/30 bg-[rgba(10,14,10,0.85)] p-3 font-mono text-[10px] uppercase tracking-[0.13em] text-white/58 backdrop-blur-md`}>
+          <div className="mb-3 text-tiloca-green">Statistiche area</div>
+          <AreaStat label="Totale" value={areaStats.total} />
           <AreaStat label="Alta" value={areaStats.alta} />
           <AreaStat label="Media" value={areaStats.media} />
           <AreaStat label="No-FV" value={areaStats.noFv} />
@@ -655,12 +666,12 @@ export function MapCanvas({
             onClick={clearArea}
             className="mt-3 w-full border border-white/10 px-2 py-2 text-left text-white/55 hover:border-tiloca-green/30 hover:text-tiloca-green"
           >
-            Clear area
+            Pulisci area
           </button>
         </div>
       ) : null}
-      <div className="absolute bottom-6 right-[430px] z-10 w-[190px] border border-tiloca-green/30 bg-[rgba(10,14,10,0.85)] p-3 font-mono text-[10px] uppercase tracking-[0.13em] text-white/58 backdrop-blur-md">
-        <div className="mb-3 text-tiloca-green">Suitability</div>
+      <div className={`absolute bottom-6 ${rightOverlayClass} z-10 w-[190px] border border-tiloca-green/30 bg-[rgba(10,14,10,0.85)] p-3 font-mono text-[10px] uppercase tracking-[0.13em] text-white/58 backdrop-blur-md`}>
+        <div className="mb-3 text-tiloca-green">Idoneità</div>
         <LegendRow color="#34d399" label="alta" />
         <LegendRow color="#fbbf24" label="media" />
         <LegendRow color="#ef4444" label="bassa" />

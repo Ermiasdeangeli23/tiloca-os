@@ -32,3 +32,11 @@ class Scan(Base):
     @property
     def skipped_count(self) -> int:
         return max((self.osm_candidates_count or 0) - (self.analyzed_count or 0), 0)
+
+    @property
+    def filters_used(self) -> dict | None:
+        return getattr(self, "_filters_used", None)
+
+    @property
+    def debug_info(self) -> dict | None:
+        return getattr(self, "_debug_info", None)

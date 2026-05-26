@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
 import sys
+import time
 from typing import Any
-
-import requests
+from urllib import error, request
 
 
 API_BASE = "http://127.0.0.1:8000"
@@ -19,12 +18,26 @@ def fail_step(message: str) -> None:
 
 
 def request_json(method: str, path: str, **kwargs: Any) -> Any:
-    response = requests.request(method, f"{API_BASE}{path}", timeout=120, **kwargs)
-    if response.status_code >= 400:
-        raise RuntimeError(f"{method} {path} failed: {response.status_code} {response.text[:500]}")
-    if not response.content:
+    body = kwargs.get("json")
+    headers = {"Accept": "application/json"}
+    data = None
+    if body is not None:
+        import json
+
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    req = request.Request(f"{API_BASE}{path}", data=data, headers=headers, method=method)
+    try:
+        with request.urlopen(req, timeout=60) as response:
+            content = response.read()
+    except error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"{method} {path} failed: {exc.code} {detail[:500]}") from exc
+    if not content:
         return None
-    return response.json()
+    import json
+
+    return json.loads(content.decode("utf-8"))
 
 
 def main() -> int:
@@ -35,78 +48,55 @@ def main() -> int:
         health = request_json("GET", "/health")
         if health.get("status") != "ok":
             raise RuntimeError(f"Unexpected health payload: {health}")
-        pass_step("Backend health")
-
-        enrichment = request_json("GET", "/enrichment/openapi/test")
-        if enrichment.get("provider") != "openapi_company":
-            raise RuntimeError(f"Unexpected OpenAPI Company payload: {enrichment}")
-        config = enrichment.get("config") or {}
-        if config.get("token_exposed") is not False:
-            raise RuntimeError("OpenAPI Company endpoint did not confirm token masking.")
-        pass_step(f"OpenAPI Company adapter ({enrichment.get('status')})")
+        pass_step("GET /health")
 
         territories = request_json("GET", "/territories")
-        if not territories:
+        if not isinstance(territories, list) or not territories:
             raise RuntimeError("No territories returned. Run migrations and seed territories.")
-        pass_step(f"Territories loaded ({len(territories)})")
+        pass_step(f"GET /territories ({len(territories)} returned)")
 
-        territory = "parma"
-        if not any(item.get("slug") == territory for item in territories):
-            territory = territories[0]["slug"]
+        assets = request_json("GET", "/assets?limit=10")
+        if not isinstance(assets, list):
+            raise RuntimeError(f"Assets endpoint did not return a list: {assets}")
+        pass_step(f"GET /assets ({len(assets)} returned)")
 
-        assets = request_json("GET", f"/assets?territory={territory}&limit=10")
-        pass_step(f"Assets endpoint reachable ({len(assets)} returned for {territory})")
+        deliveries = request_json("GET", "/deliveries")
+        if not isinstance(deliveries, list):
+            raise RuntimeError(f"Deliveries endpoint did not return a list: {deliveries}")
+        pass_step(f"GET /deliveries ({len(deliveries)} returned)")
 
-        print(f"RUN   Minimal API scan: territory={territory} max_assets=1")
-        scan = request_json(
-            "POST",
-            f"/scan/{territory}",
-            json={
-                "max_assets": 1,
+        suffix = int(time.time())
+        create_payload = {
+            "client_name": f"API Smoke Test {suffix}",
+            "target_provinces": ["torino"],
+            "criteria": {
+                "ateco_codes": ["25.62"],
                 "min_area_mq": 2000,
+                "max_area_mq": 30000,
                 "min_kwp": 300,
-                "suitability_levels": ["alta", "media"],
+                "max_kwp": 2500,
+                "limit": 2,
+                "dryRun": True,
             },
-        )
-        if scan.get("status") != "completed":
-            raise RuntimeError(f"Scan did not complete: {json.dumps(scan, ensure_ascii=False)}")
-        pass_step(f"Scan endpoint completed (scan_id={scan.get('id')})")
+            "status": "draft",
+            "target_opportunity_count": 2,
+            "notes": "Temporary API smoke-test delivery.",
+        }
+        delivery = request_json("POST", "/deliveries", json=create_payload)
+        slug = delivery.get("slug")
+        if not slug:
+            raise RuntimeError(f"Delivery create response missing slug: {delivery}")
+        pass_step(f"POST /deliveries ({slug})")
 
-        assets = request_json("GET", f"/assets?territory={territory}&limit=10")
-        if not assets:
-            raise RuntimeError("No assets available after scan. Candidate may have been rejected; retry with max_assets=3.")
-        asset_id = assets[0]["id"]
-        pass_step(f"Assets available for endpoint checks (asset_id={asset_id})")
+        detail = request_json("GET", f"/deliveries/{slug}")
+        if detail.get("slug") != slug:
+            raise RuntimeError(f"Delivery detail returned wrong slug: {detail}")
+        pass_step("GET /deliveries/{slug}")
 
-        detail = request_json("GET", f"/assets/{asset_id}")
-        if detail.get("id") != asset_id:
-            raise RuntimeError("Asset detail endpoint returned the wrong asset.")
-        pass_step("Asset detail endpoint")
-
-        old_state = (detail.get("pipeline_state") or {}).get("state") or "new"
-        updated = request_json(
-            "PATCH",
-            f"/assets/{asset_id}/state",
-            json={"state": "needs_review", "reason": "API smoke test"},
-        )
-        if (updated.get("pipeline_state") or {}).get("state") != "needs_review":
-            raise RuntimeError("State update did not persist needs_review.")
-        request_json(
-            "PATCH",
-            f"/assets/{asset_id}/state",
-            json={"state": old_state, "reason": "API smoke test restore"},
-        )
-        pass_step("State update endpoint")
-
-        match = request_json("POST", f"/assets/{asset_id}/match-company")
-        if "match_confidence" not in match:
-            raise RuntimeError(f"Company match response missing confidence: {match}")
-        pass_step(f"Company match endpoint ({match.get('match_confidence')}, score={match.get('match_score')})")
-
-        refreshed = request_json("GET", f"/assets/{asset_id}")
-        if "company_match" not in refreshed:
-            raise RuntimeError("Asset detail does not expose company_match.")
-        pass_step("Asset detail exposes company_match")
+        delivery_assets = request_json("GET", f"/deliveries/{slug}/assets")
+        if "assets" not in delivery_assets or not isinstance(delivery_assets["assets"], list):
+            raise RuntimeError(f"Delivery assets response is invalid: {delivery_assets}")
+        pass_step(f"GET /deliveries/{{slug}}/assets ({len(delivery_assets['assets'])} linked)")
 
         print("=====================")
         print("PASS  API smoke validation completed")

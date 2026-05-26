@@ -65,6 +65,7 @@ def openapi_company_scan(
             limit=payload.limit,
             dry_run=payload.dryRun,
             data_enrichment=payload.dataEnrichment,
+            confirm_production=payload.confirmProduction,
         )
         return result.as_dict()
     except ValueError as exc:
