@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
+from app.models.asset_analysis import AssetAnalysis
+from app.models.industrial_asset import IndustrialAsset
+from app.models.scan import Scan
 from app.schemas.scan import (
     CompanyFirstScanCreate,
     CompanyFirstScanRead,
     OpenApiCompanyScanCreate,
     OpenApiCompanyScanRead,
+    ScanAssetsRead,
     ScanCreate,
     ScanRead,
 )
@@ -41,6 +45,59 @@ def scan_territory(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/scans/{scan_id}/assets", response_model=ScanAssetsRead)
+def get_scan_assets(scan_id: int, db: Session = Depends(get_db)):
+    scan = (
+        db.query(Scan)
+        .options(joinedload(Scan.territory))
+        .filter(Scan.id == scan_id)
+        .first()
+    )
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    analyses = (
+        db.query(AssetAnalysis)
+        .options(
+            joinedload(AssetAnalysis.asset).joinedload(IndustrialAsset.pipeline_state),
+            joinedload(AssetAnalysis.asset).joinedload(IndustrialAsset.company_match),
+        )
+        .filter(AssetAnalysis.scan_id == scan_id)
+        .order_by(AssetAnalysis.estimated_kwp.desc(), AssetAnalysis.id.asc())
+        .all()
+    )
+
+    vision_failures = [
+        {
+            "asset_id": analysis.asset_id,
+            "osm_id": analysis.asset.osm_id if analysis.asset else None,
+            "image_path": analysis.satellite_image_path,
+            "vision_status": (analysis.raw_vision or {}).get("vision_status"),
+            "vision_error": (analysis.raw_vision or {}).get("vision_error"),
+            "parsing_error": (analysis.raw_vision or {}).get("parsing_error"),
+            "raw_model_response": (analysis.raw_vision or {}).get("raw_model_response"),
+        }
+        for analysis in analyses
+        if (analysis.raw_vision or {}).get("vision_status") == "error"
+    ]
+    scan._debug_info = {
+        "scan_asset_count": len(analyses),
+        "vision_failures_count": len(vision_failures),
+        "vision_failures": vision_failures,
+        "asset_source": "asset_analysis.scan_id",
+    }
+
+    assets = []
+    for analysis in analyses:
+        asset = analysis.asset
+        if asset is None:
+            continue
+        asset.scan_analysis = analysis
+        assets.append(asset)
+
+    return {"scan": scan, "assets": assets}
 
 
 @router.post("/company-scan/openapi", response_model=OpenApiCompanyScanRead)

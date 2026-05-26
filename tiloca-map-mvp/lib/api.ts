@@ -8,6 +8,7 @@ import type {
   DeliveryRunResponse,
   OpenApiCompanyScanResponse,
   ReportState,
+  ScanAssetsResponse,
   ScanResponse,
   Suitability,
   Territory,
@@ -84,6 +85,10 @@ export async function getAssets(params: {
 
 export async function getAsset(id: number): Promise<AssetDetail> {
   return request<AssetDetail>(`/assets/${id}`);
+}
+
+export async function getScanAssets(scanId: number): Promise<ScanAssetsResponse> {
+  return request<ScanAssetsResponse>(`/scans/${scanId}/assets`);
 }
 
 export async function updateAssetState(

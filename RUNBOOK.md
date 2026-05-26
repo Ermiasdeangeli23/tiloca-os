@@ -483,6 +483,14 @@ Invoke-RestMethod -Method Post `
 
 `max_area_mq` is applied before selecting `max_assets`, so very large polygons such as 50k+ mq industrial complexes are excluded from the candidate shortlist for that scan. If omitted, roof-first scans keep the previous behavior.
 
+Review a completed roof-first scan in the app:
+
+```text
+http://127.0.0.1:3001/operations/scans/28
+```
+
+The review page calls `GET /scans/{scan_id}/assets` and shows the scan counters, debug summary, satellite images, roof analysis, company-match status, and Google Maps links for assets created or updated by that scan.
+
 ## Production Workflow
 
 1. Start backend and frontend.

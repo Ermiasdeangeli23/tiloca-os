@@ -185,6 +185,17 @@ export type ScanResponse = {
   error: string | null;
   started_at: string;
   finished_at: string | null;
+  filters_used?: Record<string, unknown> | null;
+  debug_info?: Record<string, unknown> | null;
+};
+
+export type ScanAsset = Asset & {
+  scan_analysis: AssetAnalysis | null;
+};
+
+export type ScanAssetsResponse = {
+  scan: ScanResponse;
+  assets: ScanAsset[];
 };
 
 export type CompanyFirstScanResponse = {

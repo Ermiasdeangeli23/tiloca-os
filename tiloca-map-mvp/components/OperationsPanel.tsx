@@ -30,6 +30,7 @@ export function OperationsPanel() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [scanStatus, setScanStatus] = useState("in attesa");
+  const [lastScanId, setLastScanId] = useState<number | null>(null);
   const selectedTerritory = territories.find((item) => item.slug === territory) || null;
   const rankedAssets = useMemo(() => rankAssets(assets), [assets]);
 
@@ -47,7 +48,8 @@ export function OperationsPanel() {
   const runScan = async () => {
     setScanStatus("in corso");
     try {
-      await triggerScan(territory, 10, { minAreaMq: 2000, minKwp: 300, suitabilityLevels: ["alta", "media"] });
+      const scan = await triggerScan(territory, 10, { minAreaMq: 2000, minKwp: 300, suitabilityLevels: ["alta", "media"] });
+      setLastScanId(scan.id);
       setAssets(await getAssets({ territory, limit: 500 }));
       setScanStatus("completato");
     } catch {
@@ -83,6 +85,11 @@ export function OperationsPanel() {
             Panoramica territorio →
           </Link>
           <div className="field-shell px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/45">Scan: {scanStatus}</div>
+          {lastScanId ? (
+            <Link href={`/operations/scans/${lastScanId}`} className="block border border-tiloca-green/25 bg-tiloca-green/10 px-3 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-tiloca-green">
+              Apri revisione scan #{lastScanId}
+            </Link>
+          ) : null}
           <div className="field-shell px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/45">Asset API: {assets.length}</div>
         </div>
       </aside>
